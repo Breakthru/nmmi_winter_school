@@ -14,19 +14,15 @@ Driver::~Driver()
 
 void Driver::run()
 {
-  // TODO: get me from param server
-  std::string port = "/dev/ttyUSB0";
-  double frequency = 20.0;
-  std::vector<std::string> joint_names;
-  joint_names.push_back("joint0");
-  joint_names.push_back("joint1");
-
-  if(!startCommunication(port))
+  if(!readParameters())
     return;
 
-  startPublisher(joint_names);
+  if(!startCommunication(port_))
+    return;
 
-  ros::Rate r(frequency);
+  startPublisher(joint_names_);
+
+  ros::Rate r(publish_frequency_);
   while(ros::ok())
   {
     readMeasurements(); 
@@ -85,4 +81,53 @@ void Driver::stopCommunication()
 void Driver::readMeasurements()
 {
   // TODO: implement me, overwriting the content of msg_   
+}
+
+bool Driver::readParameters()
+{
+  if(!nh_.getParam("port", port_))
+  {
+    ROS_ERROR("No parameter 'port' in namespace %s found", 
+        nh_.getNamespace().c_str());
+    return false;
+  }
+
+  if(!nh_.getParam("publish_frequency", publish_frequency_))
+  {
+    ROS_ERROR("No parameter 'publish_frequency' in namespace %s found", 
+        nh_.getNamespace().c_str());
+    return false;
+  }
+
+  joint_names_.clear();
+  if(!nh_.getParam("joint_names", joint_names_))
+  {
+    ROS_ERROR("No parameter 'joint_names' in namespace %s found", 
+        nh_.getNamespace().c_str());
+    return false;
+  }
+
+  cube_id_map_.clear();
+  for (size_t i=0; i<joint_names_.size(); i++)
+  {
+    int cube_id; 
+    if(!nh_.getParam(joint_names_[i] + "/id", cube_id))
+    {
+      ROS_ERROR("No parameter '%s/id' in namespace %s found", 
+          joint_names_[i].c_str(), nh_.getNamespace().c_str());
+      return false;
+    }
+    cube_id_map_.insert(std::pair<std::string, int>(joint_names_[i], cube_id));
+  }
+
+  std::cout << "joint-names:\n";
+  for (size_t i=0; i<joint_names_.size(); i++)
+    std::cout << joint_names_[i] << "\n";
+
+  std::cout << "joint-name -> cube-id:\n";
+  for (std::map<std::string,int>::iterator it=cube_id_map_.begin();  
+       it!=cube_id_map_.end(); ++it)
+    std::cout << it->first << " => " << it->second << '\n';
+
+  return true;
 }

@@ -19,16 +19,26 @@ namespace iai_qb_cube_driver
       bool isRunning() const { return running_; }
 
     private:
+      // Communication stuff
       ros::NodeHandle nh_;
       comm_settings cube_comm_;
       ros::Publisher pub_;
-      bool running_;
       sensor_msgs::JointState msg_;      
+
+      // Internal flags
+      bool running_;
+
+      // Internal data members
+      std::vector<std::string> joint_names_;
+      std::map<std::string, int> cube_id_map_;
+      std::string port_;
+      double publish_frequency_;
 
       bool startCommunication(const std::string& port);
       bool startPublisher(const std::vector<std::string>& joint_names);
       void stopCommunication();
       void readMeasurements();
+      bool readParameters(); 
       // TODO: add a callback for commands
   };
 }

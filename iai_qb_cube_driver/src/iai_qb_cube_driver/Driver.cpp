@@ -9,7 +9,7 @@ Driver::Driver(const ros::NodeHandle& nh): nh_(nh), running_(false)
 
 Driver::~Driver()
 {
-
+  stopCommunication();
 }
 
 bool Driver::start()
@@ -26,11 +26,19 @@ bool Driver::startCommunication(const std::string port)
   openRS485(&cube_comm_, port.c_str());
 
   if (cube_comm_.file_handle <= 0) {
-    ROS_WARN("Panic, cube file handle was invalid");
+    ROS_ERROR("Could not connect to QBCubes");
     return false;
   } else {
     ROS_INFO("Started communication to QBCubes");
     running_ = true;
     return true;
   }
+}
+
+void Driver::stopCommunication()
+{
+  if(isRunning())
+    return;
+
+  closeRS485(&cube_comm_);
 }

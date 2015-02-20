@@ -22,7 +22,7 @@ namespace iai_qb_cube_driver
       bool running_;
 
       bool startCommunication(const std::string port);
-
+      void stopCommunication();
   };
 }
 

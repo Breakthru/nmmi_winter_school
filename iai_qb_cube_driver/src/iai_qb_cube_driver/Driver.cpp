@@ -1,11 +1,126 @@
 #include <iai_qb_cube_driver/Driver.hpp>
 
+#include <time.h>
+
 using namespace iai_qb_cube_driver;
+
+// threading helper class
+class pthread_scoped_lock
+{
+public:
+  pthread_scoped_lock(pthread_mutex_t *mutex) : mutex_(mutex) { pthread_mutex_lock(mutex_); }
+  ~pthread_scoped_lock() { unlock(); }
+  void unlock() { pthread_mutex_unlock(mutex_); }
+private:
+  pthread_mutex_t *mutex_;
+};
+
+
+//Sends a signal to stop the rt thread
+void Driver::stop_rt_thread()
+{
+  pthread_mutex_lock(&mutex_);
+  exitRequested_ = true;
+  pthread_mutex_unlock(&mutex_);
+
+  pthread_join(thread_, 0);
+}
+
+
+
+//Sets up and starts the rt thread
+bool Driver::start_rt_thread(double timeout){
+
+    timeout_ = timeout;
+    exitRequested_ = false;
+
+    // setting up mutex
+    pthread_mutexattr_t mattr;
+    pthread_mutexattr_init(&mattr);
+    pthread_mutexattr_setprotocol(&mattr, PTHREAD_PRIO_INHERIT);
+
+    pthread_mutex_init(&mutex_,  &mattr);
+
+    // setting up thread
+    pthread_attr_t tattr;
+    struct sched_param sparam;
+    sparam.sched_priority = 12;
+    pthread_attr_init(&tattr);
+    pthread_attr_setschedpolicy(&tattr, SCHED_FIFO);
+    pthread_attr_setschedparam(&tattr, &sparam);
+    pthread_attr_setinheritsched (&tattr, PTHREAD_EXPLICIT_SCHED);
+
+    if(pthread_create(&thread_, &tattr, &Driver::run_s, (void *) this) != 0)
+    {
+      fprintf(stderr, "# ERROR: could not create realtime thread\n");
+      return false;
+    }
+
+    running_ = true;
+    return true;
+
+}
+
+
+//Actual function runing in the rt thread
+void* Driver::rt_run()
+{
+
+    while(!exitRequested_) {
+        //Read state from the modules
+
+
+        //lock and write to the in buffer
+
+
+        //lock and read from the out-buffer
+
+        //write to the modules
+        printf("rt_run() got called\n");
+        usleep(100000);
+
+    }
+
+    printf("# exiting loop\n");
+
+
+    printf("# communication finished\n");
+
+    running_ = false;
+
+
+}
+
 
 Driver::Driver(const ros::NodeHandle& nh): nh_(nh), running_(false)
 {
 
+    //Get number of joints
+    int numjoints = 2;
+
+    //resize the variables for storage
+    this->joint_eqpoints.resize(numjoints);
+    this->joint_stiffness.resize(numjoints);
+
+    //initialize with zeros
+    for (unsigned int i = 0; i< numjoints; ++i) {
+        this->joint_eqpoints[i] = 0.0;
+        this->joint_stiffness[i] = 0.0;
+    }
+
+    //set up the mutex
+    pthread_mutexattr_t mattr;
+    pthread_mutexattr_init(&mattr);
+    pthread_mutexattr_setprotocol(&mattr, PTHREAD_PRIO_INHERIT);
+
+    pthread_mutex_init(&mutex_,  &mattr);
+
+
 }
+
+
+
+
 
 Driver::~Driver()
 {
@@ -15,7 +130,11 @@ Driver::~Driver()
 void Driver::run()
 {
   if(!readParameters())
-    return;
+      return;
+
+  this->start_rt_thread(2);
+  sleep(4);
+  this->stop_rt_thread();
 
   if(!startCommunication(port_))
     return;

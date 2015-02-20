@@ -5,6 +5,9 @@
 #include <ros/ros.h>
 #include <sensor_msgs/JointState.h>
 
+#include <pthread.h>
+
+
 namespace iai_qb_cube_driver
 {
   class Driver
@@ -40,6 +43,33 @@ namespace iai_qb_cube_driver
       void readMeasurements();
       bool readParameters(); 
       // TODO: add a callback for commands
+
+      //Variables containing the commands that go out to the joints
+      std::vector<float> joint_eqpoints;
+      std::vector<float> joint_stiffness;
+
+
+      //Things for the realtime thread
+      double timeout_;
+      bool exitRequested_;
+
+      //members to stop and start the rt thread
+      bool start_rt_thread(double timeout);
+      void stop_rt_thread();
+
+      //actual function running in the rt thread
+      void* rt_run();
+
+      //helper function to get the right pointer
+      static void* run_s(void *ptr) { return ((Driver *) ptr)->rt_run(); }
+
+      pthread_t thread_;
+      pthread_mutex_t mutex_;
+
+      //TODO: Need here variables for in-state and out-state
+
+
+
   };
 }
 

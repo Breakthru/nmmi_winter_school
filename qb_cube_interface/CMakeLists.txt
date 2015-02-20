@@ -76,7 +76,7 @@ generate_messages(
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
   INCLUDE_DIRS include
-#  LIBRARIES qb_cube_interface
+  LIBRARIES qbmove
 #  CATKIN_DEPENDS other_catkin_pkg
 #  DEPENDS system_lib
 )

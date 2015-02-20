@@ -1,4 +1,5 @@
 #include <iai_qb_cube_driver/Driver.hpp>
+#include <sensor_msgs/JointState.h>
 
 using namespace iai_qb_cube_driver;
 
@@ -15,10 +16,10 @@ Driver::~Driver()
 bool Driver::start()
 {
   std::string port = "/dev/ttyUSB0";
-  startCommunication(port); 
+  return startCommunication(port) && startPublisher();
 }
 
-bool Driver::startCommunication(const std::string port)
+bool Driver::startCommunication(const std::string& port)
 {
   if(isRunning())
     return true;
@@ -33,6 +34,11 @@ bool Driver::startCommunication(const std::string port)
     running_ = true;
     return true;
   }
+}
+
+bool Driver::startPublisher()
+{
+  pub_ = nh_.advertise<sensor_msgs::JointState>("joint_state", 1);
 }
 
 void Driver::stopCommunication()

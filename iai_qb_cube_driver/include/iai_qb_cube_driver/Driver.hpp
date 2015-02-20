@@ -19,9 +19,11 @@ namespace iai_qb_cube_driver
     private:
       ros::NodeHandle nh_;
       comm_settings cube_comm_;
+      ros::Publisher pub_;
       bool running_;
 
-      bool startCommunication(const std::string port);
+      bool startCommunication(const std::string& port);
+      bool startPublisher();
       void stopCommunication();
   };
 }

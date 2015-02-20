@@ -14,7 +14,8 @@ catkin_package(
 
 include_directories(
   include
-  ${catkin_INCLUDE_DIRS})
+  ${catkin_INCLUDE_DIRS}
+  ${qb_cube_interface_INCLUDE_DIRS})
 
 add_executable(iai_qb_cube_driver 
   src/iai_qb_cube_driver/Driver.cpp
@@ -22,3 +23,10 @@ add_executable(iai_qb_cube_driver
 
 target_link_libraries(iai_qb_cube_driver
   ${catkin_LIBRARIES})
+
+
+## Target that does nothing, to get the header files displayed in qtcreator
+add_custom_target(header_files
+  SOURCES include/iai_qb_cube_driver/Driver.hpp
+)
+

@@ -52,7 +52,16 @@ bool Driver::startCommunication(const std::string& port)
     return true;
   }
 
-  // TODO: activate all cubes
+// activation of cubes...
+//  char tmp = 0x00
+//  while(tmp == 0x00) {
+//    // if (cube_id > 30) break; // Georg wonders why 30?
+//    commActivate(&cube_comm_, cube_id, 1);
+//    usleep(100000);
+//    commGetActivate(&cube_comm_, cube_id, &tmp);
+//    usleep(100000);
+//  }
+	
 }
 
 bool Driver::startPublisher(const std::vector<std::string>& joint_names)

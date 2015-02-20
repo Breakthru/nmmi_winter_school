@@ -3,6 +3,7 @@
 
 #include <qbmove_communications.h>
 #include <ros/ros.h>
+#include <sensor_msgs/JointState.h>
 
 namespace iai_qb_cube_driver
 {
@@ -12,7 +13,7 @@ namespace iai_qb_cube_driver
       Driver(const ros::NodeHandle& nh);
       ~Driver(); 
 
-      bool start();
+      void run();
   
       bool isRunning() const { return running_; }
 
@@ -21,10 +22,12 @@ namespace iai_qb_cube_driver
       comm_settings cube_comm_;
       ros::Publisher pub_;
       bool running_;
+      sensor_msgs::JointState msg_;      
 
       bool startCommunication(const std::string& port);
-      bool startPublisher();
+      bool startPublisher(const std::vector<std::string>& joint_names);
       void stopCommunication();
+      void readMeasurements();
   };
 }
 

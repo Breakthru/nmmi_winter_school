@@ -76,7 +76,7 @@ void* Driver::rt_run()
         //lock and read from the out-buffer
 
         //write to the modules
-        printf("rt_run() got called\n");
+        ROS_WARN("rt_run() got called");
         usleep(100000);
 
     }

@@ -1,5 +1,5 @@
 <launch>
-  <node pkg="iai_qb_cube_driver" type="iai_qb_cube_driver" name="iai_qb_cube_driver"
+  <node pkg="iai_qb_cube_driver" type="iai_qb_cube_driver" name="iai_qb_cube_driver" launch-prefix="with_realtime"
         output="screen">
     <rosparam param="joint_names">["cube_1_joint", "cube_2_joint"]</rosparam>
     <rosparam param="cube_1_joint/id">1</rosparam>

@@ -136,10 +136,10 @@ void Driver::run()
   sleep(4);
   this->stop_rt_thread();
 
-  if(!startCommunication(port_))
-    return;
+  pub_ = nh_.advertise<sensor_msgs::JointState>("joint_state", 1);
 
-  startPublisher(joint_names_);
+  if(!startCommunication())
+    return;
 
   ros::Rate r(publish_frequency_);
   while(ros::ok())
@@ -151,12 +151,12 @@ void Driver::run()
   }
 }
 
-bool Driver::startCommunication(const std::string& port)
+bool Driver::startCommunication()
 {
   if(isRunning())
     return true;
 
-  openRS485(&cube_comm_, port.c_str());
+  openRS485(&cube_comm_, port_.c_str());
 
   if (cube_comm_.file_handle <= 0) {
     ROS_ERROR("Could not connect to QBCubes");
@@ -177,14 +177,6 @@ bool Driver::startCommunication(const std::string& port)
 //    usleep(100000);
 //  }
 	
-}
-
-bool Driver::startPublisher(const std::vector<std::string>& joint_names)
-{
-  pub_ = nh_.advertise<sensor_msgs::JointState>("joint_state", 1);
-
-  msg_.name = joint_names;
-  msg_.position.resize(joint_names.size());
 }
 
 void Driver::stopCommunication()
@@ -218,30 +210,30 @@ bool Driver::readParameters()
     return false;
   }
 
-  joint_names_.clear();
-  if(!nh_.getParam("joint_names", joint_names_))
+  if(!nh_.getParam("joint_names", msg_.name))
   {
     ROS_ERROR("No parameter 'joint_names' in namespace %s found", 
         nh_.getNamespace().c_str());
     return false;
   }
+  msg_.position.resize(msg_.name.size());
 
   cube_id_map_.clear();
-  for (size_t i=0; i<joint_names_.size(); i++)
+  for (size_t i=0; i<msg_.name.size(); i++)
   {
     int cube_id; 
-    if(!nh_.getParam(joint_names_[i] + "/id", cube_id))
+    if(!nh_.getParam(msg_.name[i] + "/id", cube_id))
     {
       ROS_ERROR("No parameter '%s/id' in namespace %s found", 
-          joint_names_[i].c_str(), nh_.getNamespace().c_str());
+          msg_.name[i].c_str(), nh_.getNamespace().c_str());
       return false;
     }
-    cube_id_map_.insert(std::pair<std::string, int>(joint_names_[i], cube_id));
+    cube_id_map_.insert(std::pair<std::string, int>(msg_.name[i], cube_id));
   }
 
   std::cout << "joint-names:\n";
-  for (size_t i=0; i<joint_names_.size(); i++)
-    std::cout << joint_names_[i] << "\n";
+  for (size_t i=0; i<msg_.name.size(); i++)
+    std::cout << msg_.name[i] << "\n";
 
   std::cout << "joint-name -> cube-id:\n";
   for (std::map<std::string,int>::iterator it=cube_id_map_.begin();  

@@ -37,8 +37,7 @@ namespace iai_qb_cube_driver
       std::string port_;
       double publish_frequency_;
 
-      bool startCommunication(const std::string& port);
-      bool startPublisher(const std::vector<std::string>& joint_names);
+      bool startCommunication();
       void stopCommunication();
       void readMeasurements();
       bool readParameters(); 

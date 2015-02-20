@@ -1,0 +1,4 @@
+<launch>
+  <node pkg="iai_qb_cube_driver" type="iai_qb_cube_driver" name="iai_qb_cube_driver"/>
+  <!-- TODO: complete me -->
+</launch>

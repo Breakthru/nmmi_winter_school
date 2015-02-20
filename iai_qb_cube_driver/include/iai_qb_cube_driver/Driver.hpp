@@ -13,6 +13,7 @@ namespace iai_qb_cube_driver
       Driver(const ros::NodeHandle& nh);
       ~Driver(); 
 
+      // TODO: make run threaded
       void run();
   
       bool isRunning() const { return running_; }
@@ -28,6 +29,7 @@ namespace iai_qb_cube_driver
       bool startPublisher(const std::vector<std::string>& joint_names);
       void stopCommunication();
       void readMeasurements();
+      // TODO: add a callback for commands
   };
 }
 

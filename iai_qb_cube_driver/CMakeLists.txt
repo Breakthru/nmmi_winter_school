@@ -21,7 +21,9 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
-add_executable(iai_qb_cube_driver src/iai_qb_cube_driver/main.cpp)
+add_executable(iai_qb_cube_driver 
+  src/iai_qb_cube_driver/Driver.cpp
+  src/iai_qb_cube_driver/main.cpp)
 
 target_link_libraries(iai_qb_cube_driver
   ${catkin_LIBRARIES}

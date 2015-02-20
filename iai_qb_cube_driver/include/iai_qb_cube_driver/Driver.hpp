@@ -2,15 +2,19 @@
 #define IAI_QB_CUBE_DRIVER_DRIVER_HPP
 
 #include <qbmove_communications.h>
+#include <ros/ros.h>
 
 namespace iai_qb_cube_driver
 {
   class Driver
   {
     public:
-      Driver() {}
+      Driver(const ros::NodeHandle& nh);
   
-      ~Driver() {}
+      ~Driver(); 
+
+    private:
+      ros::NodeHandle nh_;
   };
 }
 

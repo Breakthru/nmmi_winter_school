@@ -4,6 +4,7 @@
 #include <qbmove_communications.h>
 #include <ros/ros.h>
 #include <sensor_msgs/JointState.h>
+#include <iai_qb_cube_msgs/CubeCmd.h>
 
 #include <pthread.h>
 
@@ -28,7 +29,10 @@ namespace iai_qb_cube_driver
       ros::NodeHandle nh_;
       comm_settings cube_comm_;
       ros::Publisher pub_;
+      ros::Subscriber cmd_sub_;
       sensor_msgs::JointState msg_;      
+
+      void cmd_sub_cb_(const iai_qb_cube_msgs::CubeCmd::ConstPtr& msg);
 
       // Internal flags
       bool comm_up_, cubes_active_;
@@ -38,8 +42,8 @@ namespace iai_qb_cube_driver
       std::string port_;
       double publish_frequency_;
 
-      bool startCommunication();
-      void stopCommunication();
+      bool startCubeCommunication();
+      void stopCubeCommunication();
       bool activateCubes();
       void deactivateCubes();
       void readMeasurements();

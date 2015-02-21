@@ -3,6 +3,7 @@ project(iai_qb_cube_driver)
 
 find_package(catkin REQUIRED COMPONENTS
   qb_cube_interface
+  iai_qb_cube_msgs
   roscpp)
 
 catkin_package(

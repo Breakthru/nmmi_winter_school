@@ -112,7 +112,7 @@ Driver::Driver(const ros::NodeHandle& nh): nh_(nh), comm_up_(false)
 Driver::~Driver()
 {
   deactivateCubes();
-  stopCommunication();
+  stopCubeCommunication();
 }
 
 void Driver::run()
@@ -126,23 +126,30 @@ void Driver::run()
   int numjoints = cube_id_map_.size();
 
   //resize the variables for storage
-  this->joint_eqpoints.resize(numjoints);
-  this->joint_stiffness.resize(numjoints);
+  joint_eqpoints.resize(numjoints);
+  joint_stiffness.resize(numjoints);
 
   //initialize with zeros
   for (unsigned int i = 0; i< numjoints; ++i) {
-      this->joint_eqpoints[i] = 0.0;
-      this->joint_stiffness[i] = 0.0;
+      joint_eqpoints[i] = 0.0;
+      joint_stiffness[i] = 0.0;
   }
 
-  if (!startCommunication())
+  if (!startCubeCommunication())
     return;
 
   if (!start_rt_thread(2))
       return;
 
-  if(!activateCubes())
-    return;
+  //if(!activateCubes())
+  //  return;
+
+
+  cmd_sub_ = nh_.subscribe("command", 1, &Driver::cmd_sub_cb_, this);
+
+  ros::AsyncSpinner spinner(1);
+  spinner.start();
+
 
   ros::Rate r(publish_frequency_);
   while(ros::ok())
@@ -159,7 +166,14 @@ void Driver::run()
 
 }
 
-bool Driver::startCommunication()
+void Driver::cmd_sub_cb_(const iai_qb_cube_msgs::CubeCmd::ConstPtr& msg)
+{
+    ROS_WARN("Got a msg\n");
+
+}
+
+
+bool Driver::startCubeCommunication()
 {
 
   return true; //For now, to test the RT parts
@@ -179,7 +193,7 @@ bool Driver::startCommunication()
   return true;
 }
 
-void Driver::stopCommunication()
+void Driver::stopCubeCommunication()
 {
   if(!isCommunicationUp())
     return;

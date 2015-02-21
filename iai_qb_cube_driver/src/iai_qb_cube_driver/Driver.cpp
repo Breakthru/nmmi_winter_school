@@ -4,6 +4,8 @@
 
 using namespace iai_qb_cube_driver;
 
+typedef std::map<std::string, int>::iterator iterator_type;
+
 // threading helper class
 class pthread_scoped_lock
 {
@@ -244,7 +246,7 @@ bool Driver::readParameters()
     std::cout << msg_.name[i] << "\n";
 
   std::cout << "joint-name -> cube-id:\n";
-  for (std::map<std::string,int>::iterator it=cube_id_map_.begin();  
+  for (iterator_type it=cube_id_map_.begin();  
        it!=cube_id_map_.end(); ++it)
     std::cout << it->first << " => " << it->second << '\n';
 

@@ -142,13 +142,6 @@ void Driver::run()
       return;
 
 
-
-
-
-
-  startPublisher(joint_names_);
-
-
   ros::Rate r(publish_frequency_);
   while(ros::ok())
   {

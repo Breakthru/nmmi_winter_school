@@ -19,6 +19,8 @@ private:
 //Sends a signal to stop the rt thread
 void Driver::stop_rt_thread()
 {
+
+  ROS_INFO("Telling rt thread to exit");
   pthread_mutex_lock(&mutex_);
   exitRequested_ = true;
   pthread_mutex_unlock(&mutex_);
@@ -41,7 +43,7 @@ bool Driver::start_rt_thread(double timeout){
 
     pthread_mutex_init(&mutex_,  &mattr);
 
-    // setting up thread
+    // setting up thread with high priority
     pthread_attr_t tattr;
     struct sched_param sparam;
     sparam.sched_priority = 12;
@@ -56,7 +58,6 @@ bool Driver::start_rt_thread(double timeout){
       return false;
     }
 
-    running_ = true;
     return true;
 
 }
@@ -81,13 +82,9 @@ void* Driver::rt_run()
 
     }
 
-    printf("# exiting loop\n");
+    ROS_INFO("exiting rt thread");
 
-
-    printf("# communication finished\n");
-
-    running_ = false;
-
+    //TODO: should we stop the modules and communiction here?
 
 }
 
@@ -95,19 +92,6 @@ void* Driver::rt_run()
 Driver::Driver(const ros::NodeHandle& nh): nh_(nh), running_(false)
 {
 
-    // TODO: move this into readParameters
-    //Get number of joints
-    int numjoints = 2;
-
-    //resize the variables for storage
-    this->joint_eqpoints.resize(numjoints);
-    this->joint_stiffness.resize(numjoints);
-
-    //initialize with zeros
-    for (unsigned int i = 0; i< numjoints; ++i) {
-        this->joint_eqpoints[i] = 0.0;
-        this->joint_stiffness[i] = 0.0;
-    }
 
     //set up the mutex
     pthread_mutexattr_t mattr;
@@ -133,14 +117,37 @@ void Driver::run()
   if(!readParameters())
       return;
 
-  this->start_rt_thread(2);
-  sleep(4);
-  this->stop_rt_thread();
+
 
   pub_ = nh_.advertise<sensor_msgs::JointState>("joint_state", 1);
 
-  if(!startCommunication())
+
+  //Get number of joints
+  int numjoints = cube_id_map_.size();
+
+  //resize the variables for storage
+  this->joint_eqpoints.resize(numjoints);
+  this->joint_stiffness.resize(numjoints);
+
+  //initialize with zeros
+  for (unsigned int i = 0; i< numjoints; ++i) {
+      this->joint_eqpoints[i] = 0.0;
+      this->joint_stiffness[i] = 0.0;
+  }
+
+  if (!startCommunication())
     return;
+
+  if (!start_rt_thread(2))
+      return;
+
+
+
+
+
+
+  startPublisher(joint_names_);
+
 
   ros::Rate r(publish_frequency_);
   while(ros::ok())
@@ -150,10 +157,17 @@ void Driver::run()
     pub_.publish(msg_);
     r.sleep();
   }
+
+  //Exit cleanly
+  this->stop_rt_thread();
+
+
 }
 
 bool Driver::startCommunication()
 {
+
+  return true; //For now, to test the RT parts
   if(isRunning())
     return true;
 
@@ -182,7 +196,7 @@ bool Driver::startCommunication()
 
 void Driver::stopCommunication()
 {
-  if(isRunning())
+  if(!isRunning())
     return;
 
   // TODO: deactivate all cubes?

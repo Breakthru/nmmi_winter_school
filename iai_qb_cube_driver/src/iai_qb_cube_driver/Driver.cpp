@@ -91,7 +91,7 @@ void* Driver::rt_run()
 }
 
 
-Driver::Driver(const ros::NodeHandle& nh): nh_(nh), running_(false)
+Driver::Driver(const ros::NodeHandle& nh): nh_(nh), comm_up_(false)
 {
 
 
@@ -166,7 +166,7 @@ bool Driver::startCommunication()
 {
 
   return true; //For now, to test the RT parts
-  if(isRunning())
+  if(isCommunicationUp())
     return true;
 
   openRS485(&cube_comm_, port_.c_str());
@@ -176,7 +176,7 @@ bool Driver::startCommunication()
     return false;
   } else {
     ROS_INFO("Started communication to QBCubes");
-    running_ = true;
+    comm_up_ = true;
   }
 
   return true;
@@ -184,7 +184,7 @@ bool Driver::startCommunication()
 
 void Driver::stopCommunication()
 {
-  if(!isRunning())
+  if(!isCommunicationUp())
     return;
 
   // TODO: deactivate all cubes?
@@ -248,7 +248,7 @@ bool Driver::readParameters()
 
 bool Driver::activateCubes()
 {
-  if(!isRunning())
+  if(!isCommunicationUp())
     return false;
 
   // activation of cubes...
@@ -274,7 +274,7 @@ bool Driver::activateCubes()
 
 void Driver::deactivateCubes()
 {
-  if(!isRunning())
+  if(!isCommunicationUp())
     return;
 
   // activation of cubes...

@@ -19,7 +19,7 @@ namespace iai_qb_cube_driver
       // TODO: make run threaded
       void run();
   
-      bool isRunning() const { return running_; }
+      bool isCommunicationUp() const { return comm_up_; }
 
     private:
       // Communication stuff
@@ -29,7 +29,7 @@ namespace iai_qb_cube_driver
       sensor_msgs::JointState msg_;      
 
       // Internal flags
-      bool running_;
+      bool comm_up_;
 
       // Internal data members
       std::map<std::string, int> cube_id_map_;

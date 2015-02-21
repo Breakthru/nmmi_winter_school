@@ -1,6 +1,7 @@
 #include <iai_qb_cube_driver/Driver.hpp>
 
 #include <time.h>
+#include <definitions.h>
 
 using namespace iai_qb_cube_driver;
 
@@ -65,6 +66,35 @@ bool Driver::start_rt_thread(double timeout){
 }
 
 
+/* Function that consider the physical limits of the cube and send the angular */
+/* position to the engine using stiffness and position */
+int Driver::setPosStiff(short int pos, short int stiff, short int cube_id) {
+
+  short int curr_ref[NUM_OF_MOTORS];
+
+  if (pos > (DEFAULT_SUP_LIMIT / pow(2, DEFAULT_RESOLUTION) - DEFAULT_STIFFNESS * DEG_TICK_MULTIPLIER)) {
+    pos = (DEFAULT_SUP_LIMIT / pow(2, DEFAULT_RESOLUTION) - DEFAULT_STIFFNESS * DEG_TICK_MULTIPLIER);
+  } else if (pos < (DEFAULT_INF_LIMIT / pow(2, DEFAULT_RESOLUTION) + DEFAULT_STIFFNESS * DEG_TICK_MULTIPLIER)) {
+    pos = (DEFAULT_INF_LIMIT / pow(2, DEFAULT_RESOLUTION) + DEFAULT_STIFFNESS * DEG_TICK_MULTIPLIER);
+  }
+
+  if (stiff > DEFAULT_STIFFNESS * DEG_TICK_MULTIPLIER) {
+    stiff = DEFAULT_STIFFNESS * DEG_TICK_MULTIPLIER;
+  } else if (stiff < 0) {
+    stiff = 0;
+  }
+
+        // Position for the 2 engine of the cube.
+  curr_ref[0] = pos - stiff;
+  curr_ref[1] = pos + stiff;
+
+  commSetInputs(&cube_comm_, cube_id, curr_ref);
+
+  return 1;
+}
+
+
+
 //Actual function runing in the rt thread
 void* Driver::rt_run()
 {
@@ -79,7 +109,44 @@ void* Driver::rt_run()
         //lock and read from the out-buffer
 
         //write to the modules
-        ROS_WARN("rt_run() got called");
+        //first = name   second = cube_id
+        unsigned int i = 0;
+        for (iterator_type it=cube_id_map_.begin();
+             it!=cube_id_map_.end(); ++it) {
+
+
+            //std::cout << it->first << " => " << it->second << '\n';
+
+            int cube_id = it->second;
+            double position = des_joint_eqpoints[i];
+            double stiffness = des_joint_stiffness[i];
+
+            // Convert radians to degree. The minus sign is necessary to make an outgoing
+            // revolute axis.
+            position = -position * (180.0 / M_PI);
+
+            // Convert degrees to ticks.
+            double encoderRate_ = DEG_TICK_MULTIPLIER;
+            short int pos_input = position * encoderRate_;
+            short int stiff_input = encoderRate_ * stiffness;
+
+            // Stiffness and position set.
+            setPosStiff(pos_input, stiff_input, cube_id);
+
+
+            //commGetMeasurements(&cube_comm_, cube_id, opening_measurements);
+
+            //res.position.at(i) =  -(opening_measurements[2]/encoderRate_)*(M_PI/180); // Position in radians.
+            //res.cube_id.at(i) = cube_id;
+            //res.timestamp.at(i) = ros::Time::now().toSec() - start_time;
+
+        }
+
+
+
+
+
+        //ROS_WARN("rt_run() got called");
         usleep(100000);
 
     }
@@ -176,6 +243,8 @@ void Driver::cmd_sub_cb_(const iai_qb_cube_msgs::CubeCmd::ConstPtr& msg)
     }
 
     ROS_WARN("New setpoints.");
+
+
 
 }
 
@@ -280,6 +349,7 @@ bool Driver::activateCubes()
       commActivate(&cube_comm_, cube_id, 1);
       usleep(100000);
       commGetActivate(&cube_comm_, cube_id, &tmp);
+      ROS_INFO("tmp: %d", tmp);
       usleep(100000);
     }
 

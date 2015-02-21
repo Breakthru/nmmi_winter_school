@@ -30,7 +30,9 @@ namespace iai_qb_cube_driver
       comm_settings cube_comm_;
       ros::Publisher pub_;
       ros::Subscriber cmd_sub_;
-      sensor_msgs::JointState msg_;      
+      sensor_msgs::JointState msg_;
+      int setPosStiff(short int pos, short int stiff, short int cube_id);
+
 
       void cmd_sub_cb_(const iai_qb_cube_msgs::CubeCmd::ConstPtr& msg);
 

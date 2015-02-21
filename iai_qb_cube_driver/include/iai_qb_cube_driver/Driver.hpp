@@ -32,7 +32,6 @@ namespace iai_qb_cube_driver
       bool running_;
 
       // Internal data members
-      std::vector<std::string> joint_names_;
       std::map<std::string, int> cube_id_map_;
       std::string port_;
       double publish_frequency_;

@@ -95,6 +95,7 @@ void* Driver::rt_run()
 Driver::Driver(const ros::NodeHandle& nh): nh_(nh), running_(false)
 {
 
+    // TODO: move this into readParameters
     //Get number of joints
     int numjoints = 2;
 

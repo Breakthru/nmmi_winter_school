@@ -4,13 +4,21 @@
 #include <qbmove_communications.h>
 #include <ros/ros.h>
 #include <sensor_msgs/JointState.h>
-#include <iai_qb_cube_msgs/CubeCmd.h>
+#include <iai_qb_cube_msgs/CubeCmdArray.h>
 
 #include <pthread.h>
 
 
 namespace iai_qb_cube_driver
 {
+  class InternalCommand
+  {
+    public:
+      short int cube_id_;
+      double equilibrium_point_;
+      double stiffness_preset_;
+  };
+
   class Driver
   {
     public:
@@ -34,7 +42,7 @@ namespace iai_qb_cube_driver
       int setPosStiff(short int pos, short int stiff, short int cube_id);
 
 
-      void cmd_sub_cb_(const iai_qb_cube_msgs::CubeCmd::ConstPtr& msg);
+      void cmd_sub_cb_(const iai_qb_cube_msgs::CubeCmdArray::ConstPtr& msg);
 
       // Internal flags
       bool comm_up_, cubes_active_;
@@ -57,9 +65,9 @@ namespace iai_qb_cube_driver
       void readMeasurements();
 
       //Variables containing the commands that go out to the joints
-      std::vector<float> des_joint_eqpoints;
-      std::vector<float> des_joint_stiffness;
-
+//      std::vector<float> des_joint_eqpoints;
+//      std::vector<float> des_joint_stiffness;
+      std::vector<InternalCommand> desired_command_;
 
       //Things for the realtime thread
       double timeout_;

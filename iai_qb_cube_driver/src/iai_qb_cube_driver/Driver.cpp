@@ -111,15 +111,14 @@ void* Driver::rt_run()
         //write to the modules
         //first = name   second = cube_id
         unsigned int i = 0;
-        for (iterator_type it=cube_id_map_.begin();
-             it!=cube_id_map_.end(); ++it) {
-
+        for (size_t i=0; i<desired_command_.size(); i++)
+        {
 
             //std::cout << it->first << " => " << it->second << '\n';
 
-            int cube_id = it->second;
-            double position = des_joint_eqpoints[i];
-            double stiffness = des_joint_stiffness[i];
+            //int cube_id = it->second;
+            double position = desired_command_[i].equilibrium_point_; //des_joint_eqpoints[i];
+            double stiffness = desired_command_[i].stiffness_preset_; // des_joint_stiffness[i];
 
             // Convert radians to degree. The minus sign is necessary to make an outgoing
             // revolute axis.
@@ -131,7 +130,7 @@ void* Driver::rt_run()
             short int stiff_input = encoderRate_ * stiffness;
 
             // Stiffness and position set.
-            setPosStiff(pos_input, stiff_input, cube_id);
+            setPosStiff(pos_input, stiff_input, desired_command_[i].cube_id_);
 
 
             //commGetMeasurements(&cube_comm_, cube_id, opening_measurements);
@@ -172,10 +171,6 @@ Driver::Driver(const ros::NodeHandle& nh): nh_(nh), comm_up_(false)
 
 }
 
-
-
-
-
 Driver::~Driver()
 {
   deactivateCubes();
@@ -189,15 +184,14 @@ void Driver::run()
 
   initDatastructures();
 
-
-  if (!startCubeCommunication())
-    return;
-
-  if (!start_rt_thread(2))
-      return;
-
-  if(!activateCubes())
-    return;
+//  if (!startCubeCommunication())
+//    return;
+//
+//  if (!start_rt_thread(2))
+//      return;
+//
+//  if(!activateCubes())
+//    return;
 
 
   cmd_sub_ = nh_.subscribe("command", 1, &Driver::cmd_sub_cb_, this);
@@ -217,35 +211,44 @@ void Driver::run()
 
   //Exit cleanly
   this->stop_rt_thread();
-
-
 }
 
-void Driver::cmd_sub_cb_(const iai_qb_cube_msgs::CubeCmd::ConstPtr& msg)
+void Driver::cmd_sub_cb_(const iai_qb_cube_msgs::CubeCmdArray::ConstPtr& msg)
 {
-
-    unsigned int len_id_map = cube_id_map_.size();
-
-    //TODO: Guard the writing
-    //TODO: replace this by comparing the names of the joints
-    unsigned int len_eq = msg->eq_point_angle.size();
-    if (len_eq == len_id_map) {
-        for (unsigned int i = 0; i < len_id_map ; ++i) {
-            des_joint_eqpoints[i] = msg->eq_point_angle[i];
-        }
+  std::vector<InternalCommand> desired_command;
+  for(size_t i=0; i<msg->commands.size(); i++)
+  {
+    if(cube_id_map_[msg->commands[i].joint_name] == 1)
+    {
+      // assert: joint_name is none to us
+      InternalCommand new_command;
+      new_command.cube_id_ = cube_id_map_[msg->commands[i].joint_name];
+      new_command.equilibrium_point_ = msg->commands[i].equilibrium_point;
+      new_command.stiffness_preset_ = msg->commands[i].stiffness_preset;
+      desired_command.push_back(new_command);
     }
+  }
 
-    unsigned int len_st = msg->stiffness.size();
-    if (len_st == len_id_map) {
-        for (unsigned int i = 0; i < len_id_map ; ++i) {
-            des_joint_stiffness[i] = msg->stiffness[i];
-        }
-    }
+  ROS_WARN("New setpoints.");
 
-    ROS_WARN("New setpoints.");
+  pthread_scoped_lock scoped_lock(&mutex_);
+  desired_command_ = desired_command;
 
-
-
+//  //TODO: Guard the writing
+//    //TODO: replace this by comparing the names of the joints
+//    unsigned int len_eq = msg->eq_point_angle.size();
+//    if (len_eq == len_id_map) {
+//        for (unsigned int i = 0; i < len_id_map ; ++i) {
+//            des_joint_eqpoints[i] = msg->eq_point_angle[i];
+//        }
+//    }
+//
+//    unsigned int len_st = msg->stiffness.size();
+//    if (len_st == len_id_map) {
+//        for (unsigned int i = 0; i < len_id_map ; ++i) {
+//            des_joint_stiffness[i] = msg->stiffness[i];
+//        }
+//    }
 }
 
 
@@ -399,15 +402,15 @@ void Driver::initDatastructures()
   pub_ = nh_.advertise<sensor_msgs::JointState>("joint_state", 1);
 
   //Get number of joints
-  int numjoints = cube_id_map_.size();
+//  int numjoints = cube_id_map_.size();
 
   //resize the variables for storage
-  des_joint_eqpoints.resize(numjoints);
-  des_joint_stiffness.resize(numjoints);
+//  des_joint_eqpoints.resize(numjoints);
+//  des_joint_stiffness.resize(numjoints);
 
   //initialize with zeros
-  for (unsigned int i = 0; i< numjoints; ++i) {
-      des_joint_eqpoints[i] = 0.0;
-      des_joint_stiffness[i] = 0.0;
-  }
+//  for (unsigned int i = 0; i< numjoints; ++i) {
+//      des_joint_eqpoints[i] = 0.0;
+//      des_joint_stiffness[i] = 0.0;
+//  }
 }

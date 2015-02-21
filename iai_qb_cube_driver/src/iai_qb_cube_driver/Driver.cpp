@@ -120,10 +120,7 @@ void Driver::run()
   if(!readParameters())
       return;
 
-
-
   pub_ = nh_.advertise<sensor_msgs::JointState>("joint_state", 1);
-
 
   //Get number of joints
   int numjoints = cube_id_map_.size();
@@ -187,8 +184,6 @@ void Driver::stopCommunication()
   if(!isCommunicationUp())
     return;
 
-  // TODO: deactivate all cubes?
-
   closeRS485(&cube_comm_);
 }
 
@@ -251,7 +246,9 @@ bool Driver::activateCubes()
   if(!isCommunicationUp())
     return false;
 
-  // activation of cubes...
+  // We are activating the cubes regardless of whether we think we
+  // already have them activated. Can't really hurt.
+
   for(iterator_type it = cube_id_map_.begin(); it != cube_id_map_.end(); it++) 
   {
     char tmp = 0x00;
@@ -268,6 +265,8 @@ bool Driver::activateCubes()
 
     ROS_INFO("...succeeded");
   }
+
+  cubes_active_ = true;
 	
   return true;
 }
@@ -277,7 +276,9 @@ void Driver::deactivateCubes()
   if(!isCommunicationUp())
     return;
 
-  // activation of cubes...
+  // We deactivate the cubes regardless of whether we think we
+  // already have them deactivated. Better safe than sorry.
+
   for(iterator_type it = cube_id_map_.begin(); it != cube_id_map_.end(); it++) 
   {
     char tmp = 0x00;
@@ -289,4 +290,6 @@ void Driver::deactivateCubes()
       commActivate(&cube_comm_, cube_id, 0);
     }
   }
+
+  cubes_active_ = false;
 }

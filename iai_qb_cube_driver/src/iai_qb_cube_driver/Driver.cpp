@@ -279,7 +279,15 @@ void Driver::stopCubeCommunication()
 
 void Driver::readMeasurements()
 {
-  // TODO: implement me, overwriting the content of msg_   
+  // TODO: possibly speed me up by not looking up in the map..
+  for (size_t i=0; i<msg_.name.size(); i++)
+  { 
+    short int cube_id = cube_id_map_[msg_.name[i]];
+    short int measurements[3];
+    commGetMeasurements(&cube_comm_, cube_id, measurements);
+    // Position in radians.
+    msg_.position[i] = -(measurements[2]/DEG_TICK_MULTIPLIER)*(M_PI/180); 
+  }
 }
 
 bool Driver::readParameters()

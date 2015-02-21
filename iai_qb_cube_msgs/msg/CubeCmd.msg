@@ -1,3 +1,2 @@
-float32[] eq_point_angle
-float32[] stiffness
-
+float64 joint_position
+float64 joint_stiffness

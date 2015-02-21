@@ -38,6 +38,8 @@ namespace iai_qb_cube_driver
 
       bool startCommunication();
       void stopCommunication();
+      bool activateCubes();
+      void deactivateCubes();
       void readMeasurements();
       bool readParameters(); 
       // TODO: add a callback for commands

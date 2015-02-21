@@ -111,6 +111,7 @@ Driver::Driver(const ros::NodeHandle& nh): nh_(nh), running_(false)
 
 Driver::~Driver()
 {
+  deactivateCubes();
   stopCommunication();
 }
 
@@ -143,6 +144,8 @@ void Driver::run()
   if (!start_rt_thread(2))
       return;
 
+  if(!activateCubes())
+    return;
 
   ros::Rate r(publish_frequency_);
   while(ros::ok())
@@ -174,19 +177,9 @@ bool Driver::startCommunication()
   } else {
     ROS_INFO("Started communication to QBCubes");
     running_ = true;
-    return true;
   }
 
-// activation of cubes...
-//  char tmp = 0x00
-//  while(tmp == 0x00) {
-//    // if (cube_id > 30) break; // Georg wonders why 30?
-//    commActivate(&cube_comm_, cube_id, 1);
-//    usleep(100000);
-//    commGetActivate(&cube_comm_, cube_id, &tmp);
-//    usleep(100000);
-//  }
-	
+  return true;
 }
 
 void Driver::stopCommunication()
@@ -251,4 +244,49 @@ bool Driver::readParameters()
     std::cout << it->first << " => " << it->second << '\n';
 
   return true;
+}
+
+bool Driver::activateCubes()
+{
+  if(!isRunning())
+    return false;
+
+  // activation of cubes...
+  for(iterator_type it = cube_id_map_.begin(); it != cube_id_map_.end(); it++) 
+  {
+    char tmp = 0x00;
+    short int cube_id = it->second;
+    ROS_INFO("Trying to activate cube with id '%d'...", cube_id);
+    while(tmp == 0x00) 
+    {
+      if (cube_id > 30) break; // Georg wonders why 30?
+      commActivate(&cube_comm_, cube_id, 1);
+      usleep(100000);
+      commGetActivate(&cube_comm_, cube_id, &tmp);
+      usleep(100000);
+    }
+
+    ROS_INFO("...succeeded");
+  }
+	
+  return true;
+}
+
+void Driver::deactivateCubes()
+{
+  if(!isRunning())
+    return;
+
+  // activation of cubes...
+  for(iterator_type it = cube_id_map_.begin(); it != cube_id_map_.end(); it++) 
+  {
+    char tmp = 0x00;
+    short int cube_id = it->second;
+    ROS_INFO("Deactivating cube with id '%d'", cube_id);
+    while(tmp == 0x00) 
+    {
+      if (cube_id > 30) break; // Georg wonders why 30?
+      commActivate(&cube_comm_, cube_id, 0);
+    }
+  }
 }

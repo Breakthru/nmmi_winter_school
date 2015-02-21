@@ -50,6 +50,7 @@ namespace iai_qb_cube_driver
       int setPosStiff(short int pos, short int stiff, short int cube_id);
 
       void cmd_sub_cb_(const iai_qb_cube_msgs::CubeCmdArray::ConstPtr& msg);
+      sensor_msgs::JointState getJointStateMsg();
 
       // Internal flags
       bool comm_up_, cubes_active_;
@@ -79,7 +80,6 @@ namespace iai_qb_cube_driver
       //Variables containing the commands that go out to the joints
       std::vector<InternalCommand> command_buffer_;
       std::vector<InternalState> measurement_buffer_, measurement_tmp_;
-      sensor_msgs::JointState msg_;
 
       //members to stop and start the rt thread
       bool start_rt_thread(double timeout);

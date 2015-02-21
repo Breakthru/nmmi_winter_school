@@ -148,8 +148,7 @@ void Driver::run()
   ros::Rate r(publish_frequency_);
   while(ros::ok())
   {
-    msg_.header.stamp = ros::Time::now();
-    pub_.publish(msg_);
+    pub_.publish(getJointStateMsg());
     r.sleep();
   }
 
@@ -176,6 +175,32 @@ void Driver::cmd_sub_cb_(const iai_qb_cube_msgs::CubeCmdArray::ConstPtr& msg)
   ROS_WARN("New setpoints.");
 
   writeCommandBuffer(desired_command);
+}
+
+sensor_msgs::JointState Driver::getJointStateMsg()
+{
+
+  sensor_msgs::JointState msg;
+  std::vector<InternalState> measurement = readMeasurementBuffer();
+
+  assert(cube_id_map_.size() == measurement.size());
+
+  msg.header.stamp = ros::Time::now();
+
+  size_t i=0;
+  for (iterator_type it=cube_id_map_.begin();  
+       it!=cube_id_map_.end(); ++it)
+  { 
+    if(measurement[i].cube_id_ == it->second)
+    {
+      msg.name.push_back(it->first);
+      msg.position.push_back(measurement[i].joint_position_);
+    }
+    else
+      ROS_WARN("Mismatching cube-id during construction of JointState message.");
+  }
+
+  return msg;
 }
 
 bool Driver::startCubeCommunication()
@@ -270,7 +295,8 @@ bool Driver::readParameters()
     return false;
   }
 
-  if(!nh_.getParam("joint_names", msg_.name))
+  std::vector<std::string> joint_names;
+  if(!nh_.getParam("joint_names", joint_names))
   {
     ROS_ERROR("No parameter 'joint_names' in namespace %s found", 
         nh_.getNamespace().c_str());
@@ -278,21 +304,21 @@ bool Driver::readParameters()
   }
 
   cube_id_map_.clear();
-  for (size_t i=0; i<msg_.name.size(); i++)
+  for (size_t i=0; i<joint_names.size(); i++)
   {
     int cube_id; 
-    if(!nh_.getParam(msg_.name[i] + "/id", cube_id))
+    if(!nh_.getParam(joint_names[i] + "/id", cube_id))
     {
       ROS_ERROR("No parameter '%s/id' in namespace %s found", 
-          msg_.name[i].c_str(), nh_.getNamespace().c_str());
+          joint_names[i].c_str(), nh_.getNamespace().c_str());
       return false;
     }
-    cube_id_map_.insert(std::pair<std::string, int>(msg_.name[i], cube_id));
+    cube_id_map_.insert(std::pair<std::string, int>(joint_names[i], cube_id));
   }
 
   std::cout << "joint-names:\n";
-  for (size_t i=0; i<msg_.name.size(); i++)
-    std::cout << msg_.name[i] << "\n";
+  for (size_t i=0; i<joint_names.size(); i++)
+    std::cout << joint_names[i] << "\n";
 
   std::cout << "joint-name -> cube-id:\n";
   for (iterator_type it=cube_id_map_.begin();  
@@ -358,8 +384,6 @@ void Driver::deactivateCubes()
 
 void Driver::initDatastructures()
 {
-  msg_.position.resize(msg_.name.size());
-
   pub_ = nh_.advertise<sensor_msgs::JointState>("joint_state", 1);
 
   measurement_buffer_.resize(cube_id_map_.size());

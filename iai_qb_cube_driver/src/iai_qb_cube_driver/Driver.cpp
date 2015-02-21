@@ -122,14 +122,15 @@ void Driver::run()
 
   initDatastructures();
 
+
   if (!startCubeCommunication())
     return;
 
   if (!start_rt_thread(2))
       return;
 
-  //if(!activateCubes())
-  //  return;
+  if(!activateCubes())
+    return;
 
 
   cmd_sub_ = nh_.subscribe("command", 1, &Driver::cmd_sub_cb_, this);
@@ -155,7 +156,26 @@ void Driver::run()
 
 void Driver::cmd_sub_cb_(const iai_qb_cube_msgs::CubeCmd::ConstPtr& msg)
 {
-    ROS_WARN("Got a msg\n");
+
+    unsigned int len_id_map = cube_id_map_.size();
+
+    //TODO: Guard the writing
+    //TODO: replace this by comparing the names of the joints
+    unsigned int len_eq = msg->eq_point_angle.size();
+    if (len_eq == len_id_map) {
+        for (unsigned int i = 0; i < len_id_map ; ++i) {
+            des_joint_eqpoints[i] = msg->eq_point_angle[i];
+        }
+    }
+
+    unsigned int len_st = msg->stiffness.size();
+    if (len_st == len_id_map) {
+        for (unsigned int i = 0; i < len_id_map ; ++i) {
+            des_joint_stiffness[i] = msg->stiffness[i];
+        }
+    }
+
+    ROS_WARN("New setpoints.");
 
 }
 
@@ -163,7 +183,7 @@ void Driver::cmd_sub_cb_(const iai_qb_cube_msgs::CubeCmd::ConstPtr& msg)
 bool Driver::startCubeCommunication()
 {
 
-  return true; //For now, to test the RT parts
+  //return true; //For now, to test the RT parts
   if(isCommunicationUp())
     return true;
 
@@ -304,12 +324,12 @@ void Driver::initDatastructures()
   int numjoints = cube_id_map_.size();
 
   //resize the variables for storage
-  this->joint_eqpoints.resize(numjoints);
-  this->joint_stiffness.resize(numjoints);
+  des_joint_eqpoints.resize(numjoints);
+  des_joint_stiffness.resize(numjoints);
 
   //initialize with zeros
   for (unsigned int i = 0; i< numjoints; ++i) {
-      this->joint_eqpoints[i] = 0.0;
-      this->joint_stiffness[i] = 0.0;
+      des_joint_eqpoints[i] = 0.0;
+      des_joint_stiffness[i] = 0.0;
   }
 }

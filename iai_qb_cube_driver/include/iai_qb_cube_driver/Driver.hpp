@@ -55,8 +55,8 @@ namespace iai_qb_cube_driver
       void readMeasurements();
 
       //Variables containing the commands that go out to the joints
-      std::vector<float> joint_eqpoints;
-      std::vector<float> joint_stiffness;
+      std::vector<float> des_joint_eqpoints;
+      std::vector<float> des_joint_stiffness;
 
 
       //Things for the realtime thread

@@ -44,11 +44,15 @@ namespace iai_qb_cube_driver
 
       bool startCubeCommunication();
       void stopCubeCommunication();
+
       bool activateCubes();
       void deactivateCubes();
-      void readMeasurements();
+
       bool readParameters(); 
+      void initDatastructures();
       // TODO: add a callback for commands
+
+      void readMeasurements();
 
       //Variables containing the commands that go out to the joints
       std::vector<float> joint_eqpoints;

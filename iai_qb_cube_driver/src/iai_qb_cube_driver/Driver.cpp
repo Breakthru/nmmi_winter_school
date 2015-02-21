@@ -120,20 +120,7 @@ void Driver::run()
   if(!readParameters())
       return;
 
-  pub_ = nh_.advertise<sensor_msgs::JointState>("joint_state", 1);
-
-  //Get number of joints
-  int numjoints = cube_id_map_.size();
-
-  //resize the variables for storage
-  joint_eqpoints.resize(numjoints);
-  joint_stiffness.resize(numjoints);
-
-  //initialize with zeros
-  for (unsigned int i = 0; i< numjoints; ++i) {
-      joint_eqpoints[i] = 0.0;
-      joint_stiffness[i] = 0.0;
-  }
+  initDatastructures();
 
   if (!startCubeCommunication())
     return;
@@ -228,7 +215,6 @@ bool Driver::readParameters()
         nh_.getNamespace().c_str());
     return false;
   }
-  msg_.position.resize(msg_.name.size());
 
   cube_id_map_.clear();
   for (size_t i=0; i<msg_.name.size(); i++)
@@ -306,4 +292,24 @@ void Driver::deactivateCubes()
   }
 
   cubes_active_ = false;
+}
+
+void Driver::initDatastructures()
+{
+  msg_.position.resize(msg_.name.size());
+
+  pub_ = nh_.advertise<sensor_msgs::JointState>("joint_state", 1);
+
+  //Get number of joints
+  int numjoints = cube_id_map_.size();
+
+  //resize the variables for storage
+  this->joint_eqpoints.resize(numjoints);
+  this->joint_stiffness.resize(numjoints);
+
+  //initialize with zeros
+  for (unsigned int i = 0; i< numjoints; ++i) {
+      this->joint_eqpoints[i] = 0.0;
+      this->joint_stiffness[i] = 0.0;
+  }
 }

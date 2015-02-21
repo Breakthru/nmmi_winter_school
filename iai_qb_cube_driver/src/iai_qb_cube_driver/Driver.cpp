@@ -18,7 +18,6 @@ private:
   pthread_mutex_t *mutex_;
 };
 
-
 //Sends a signal to stop the rt thread
 void Driver::stop_rt_thread()
 {
@@ -31,40 +30,35 @@ void Driver::stop_rt_thread()
   pthread_join(thread_, 0);
 }
 
-
-
 //Sets up and starts the rt thread
 bool Driver::start_rt_thread(double timeout){
+  timeout_ = timeout;
+  exitRequested_ = false;
 
-    timeout_ = timeout;
-    exitRequested_ = false;
+  // setting up mutex
+  pthread_mutexattr_t mattr;
+  pthread_mutexattr_init(&mattr);
+  pthread_mutexattr_setprotocol(&mattr, PTHREAD_PRIO_INHERIT);
 
-    // setting up mutex
-    pthread_mutexattr_t mattr;
-    pthread_mutexattr_init(&mattr);
-    pthread_mutexattr_setprotocol(&mattr, PTHREAD_PRIO_INHERIT);
+  pthread_mutex_init(&mutex_,  &mattr);
 
-    pthread_mutex_init(&mutex_,  &mattr);
+  // setting up thread with high priority
+  pthread_attr_t tattr;
+  struct sched_param sparam;
+  sparam.sched_priority = 12;
+  pthread_attr_init(&tattr);
+  pthread_attr_setschedpolicy(&tattr, SCHED_FIFO);
+  pthread_attr_setschedparam(&tattr, &sparam);
+  pthread_attr_setinheritsched (&tattr, PTHREAD_EXPLICIT_SCHED);
 
-    // setting up thread with high priority
-    pthread_attr_t tattr;
-    struct sched_param sparam;
-    sparam.sched_priority = 12;
-    pthread_attr_init(&tattr);
-    pthread_attr_setschedpolicy(&tattr, SCHED_FIFO);
-    pthread_attr_setschedparam(&tattr, &sparam);
-    pthread_attr_setinheritsched (&tattr, PTHREAD_EXPLICIT_SCHED);
+  if(pthread_create(&thread_, &tattr, &Driver::run_s, (void *) this) != 0)
+  {
+    fprintf(stderr, "# ERROR: could not create realtime thread\n");
+    return false;
+  }
 
-    if(pthread_create(&thread_, &tattr, &Driver::run_s, (void *) this) != 0)
-    {
-      fprintf(stderr, "# ERROR: could not create realtime thread\n");
-      return false;
-    }
-
-    return true;
-
+  return true;
 }
-
 
 /* Function that consider the physical limits of the cube and send the angular */
 /* position to the engine using stiffness and position */
@@ -93,43 +87,18 @@ int Driver::setPosStiff(short int pos, short int stiff, short int cube_id) {
   return 1;
 }
 
-
-
 //Actual function runing in the rt thread
 void* Driver::rt_run()
 {
     while(!exitRequested_) {
-        //Read state from the modules
-        readMeasurements(); 
+        readMeasurement(); 
+        writeMeasurementBuffer(measurement_tmp_);
 
-        //lock and write to the in buffer
-
-
-        //lock and read from the out-buffer
-
-        //write to the modules
-        unsigned int i = 0;
-        for (size_t i=0; i<desired_command_.size(); i++)
-        {
-            double position = desired_command_[i].equilibrium_point_;
-            double stiffness = desired_command_[i].stiffness_preset_;
-
-            // Convert radians to degree. The minus sign is necessary to make 
-            // an outgoing revolute axis.
-            position = -position * (180.0 / M_PI);
-
-            // Convert degrees to ticks.
-            double encoderRate_ = DEG_TICK_MULTIPLIER;
-            short int pos_input = position * encoderRate_;
-            short int stiff_input = encoderRate_ * stiffness;
-
-            // Stiffness and position set.
-            setPosStiff(pos_input, stiff_input, desired_command_[i].cube_id_);
-        }
+        readCommandBuffer(); 
+        writeCommand();
 
         //ROS_WARN("rt_run() got called");
-        usleep(100000);
-
+        //usleep(100000);
     }
 
     ROS_INFO("exiting rt thread");
@@ -139,16 +108,12 @@ void* Driver::rt_run()
 
 Driver::Driver(const ros::NodeHandle& nh): nh_(nh), comm_up_(false)
 {
-
-
     //set up the mutex
     pthread_mutexattr_t mattr;
     pthread_mutexattr_init(&mattr);
     pthread_mutexattr_setprotocol(&mattr, PTHREAD_PRIO_INHERIT);
 
     pthread_mutex_init(&mutex_,  &mattr);
-
-
 }
 
 Driver::~Driver()
@@ -210,10 +175,8 @@ void Driver::cmd_sub_cb_(const iai_qb_cube_msgs::CubeCmdArray::ConstPtr& msg)
 
   ROS_WARN("New setpoints.");
 
-  pthread_scoped_lock scoped_lock(&mutex_);
-  desired_command_ = desired_command;
+  writeCommandBuffer(desired_command);
 }
-
 
 bool Driver::startCubeCommunication()
 {
@@ -243,9 +206,9 @@ void Driver::stopCubeCommunication()
   closeRS485(&cube_comm_);
 }
 
-void Driver::readMeasurements()
+void Driver::readMeasurement()
 {
-  assert(cube_id_map_.size() == current_measurements_.size());
+  assert(cube_id_map_.size() == measurement_tmp_.size());
 
   // TODO: possibly speed me up by not looking up in the map..
   size_t i = 0;
@@ -257,14 +220,37 @@ void Driver::readMeasurements()
     commGetMeasurements(&cube_comm_, cube_id, measurements);
     // all measurements in radians
     // TODO: 1, too, many...
-    current_measurements_[i].motor1_position_ = 
+    measurement_tmp_[i].motor1_position_ = 
         - (measurements[0]/DEG_TICK_MULTIPLIER)*(M_PI/180);
-    current_measurements_[i].motor1_position_ = 
+    measurement_tmp_[i].motor1_position_ = 
         - (measurements[1]/DEG_TICK_MULTIPLIER)*(M_PI/180);
-    current_measurements_[i].joint_position_ = 
+    measurement_tmp_[i].joint_position_ = 
         - (measurements[2]/DEG_TICK_MULTIPLIER)*(M_PI/180);
 
     i++;
+  }
+}
+
+void Driver::writeCommand()
+{
+  //write to the modules
+  unsigned int i = 0;
+  for (size_t i=0; i<command_buffer_.size(); i++)
+  {
+      double position = command_buffer_[i].equilibrium_point_;
+      double stiffness = command_buffer_[i].stiffness_preset_;
+  
+      // Convert radians to degree. The minus sign is necessary to make 
+      // an outgoing revolute axis.
+      position = -position * (180.0 / M_PI);
+  
+      // Convert degrees to ticks.
+      double encoderRate_ = DEG_TICK_MULTIPLIER;
+      short int pos_input = position * encoderRate_;
+      short int stiff_input = encoderRate_ * stiffness;
+  
+      // Stiffness and position set.
+      setPosStiff(pos_input, stiff_input, command_buffer_[i].cube_id_);
   }
 }
 
@@ -376,18 +362,30 @@ void Driver::initDatastructures()
 
   pub_ = nh_.advertise<sensor_msgs::JointState>("joint_state", 1);
 
-  current_measurements_.resize(cube_id_map_.size());
+  measurement_buffer_.resize(cube_id_map_.size());
+  measurement_tmp_.resize(cube_id_map_.size());
+}
 
-  //Get number of joints
-//  int numjoints = cube_id_map_.size();
+const std::vector<InternalCommand>& Driver::readCommandBuffer()
+{
+  pthread_scoped_lock scoped_lock(&mutex_);
+  return command_buffer_;
+}
 
-  //resize the variables for storage
-//  des_joint_eqpoints.resize(numjoints);
-//  des_joint_stiffness.resize(numjoints);
+void Driver::writeCommandBuffer(const std::vector<InternalCommand>& new_command)
+{
+  pthread_scoped_lock scoped_lock(&mutex_);
+  command_buffer_ = new_command;
+}
 
-  //initialize with zeros
-//  for (unsigned int i = 0; i< numjoints; ++i) {
-//      des_joint_eqpoints[i] = 0.0;
-//      des_joint_stiffness[i] = 0.0;
-//  }
+const std::vector<InternalState>& Driver::readMeasurementBuffer()
+{
+  pthread_scoped_lock scoped_lock(&mutex_);
+  return measurement_buffer_;
+}
+
+void Driver::writeMeasurementBuffer(const std::vector<InternalState>& new_measurement)
+{
+  pthread_scoped_lock scoped_lock(&mutex_);
+  measurement_buffer_ = new_measurement;
 }

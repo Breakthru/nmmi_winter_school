@@ -67,18 +67,19 @@ namespace iai_qb_cube_driver
 
       bool readParameters(); 
       void initDatastructures();
-      // TODO: add a callback for commands
 
-      void readMeasurements();
+      const std::vector<InternalCommand>& readCommandBuffer();
+      void writeCommandBuffer(const std::vector<InternalCommand>& new_command);
+      const std::vector<InternalState>& readMeasurementBuffer();
+      void writeMeasurementBuffer(const std::vector<InternalState>& new_measurement);
+
+      void readMeasurement();
+      void writeCommand();
 
       //Variables containing the commands that go out to the joints
-      std::vector<InternalCommand> desired_command_;
-      std::vector<InternalState> current_measurements_;
+      std::vector<InternalCommand> command_buffer_;
+      std::vector<InternalState> measurement_buffer_, measurement_tmp_;
       sensor_msgs::JointState msg_;
-
-      //Things for the realtime thread
-      double timeout_;
-      bool exitRequested_;
 
       //members to stop and start the rt thread
       bool start_rt_thread(double timeout);
@@ -90,13 +91,11 @@ namespace iai_qb_cube_driver
       //helper function to get the right pointer
       static void* run_s(void *ptr) { return ((Driver *) ptr)->rt_run(); }
 
+      //Things for the realtime thread
+      double timeout_;
+      bool exitRequested_;
       pthread_t thread_;
       pthread_mutex_t mutex_;
-
-      //TODO: Need here variables for in-state and out-state
-
-
-
   };
 }
 

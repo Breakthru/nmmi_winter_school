@@ -1,2 +1,3 @@
-float64 joint_position
-float64 joint_stiffness
+string joint_name
+float64 equilibrium_point
+float64 stiffness_preset

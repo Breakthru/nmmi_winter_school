@@ -41,6 +41,9 @@ find_package(catkin REQUIRED COMPONENTS
 add_message_files(
   FILES
   CubeCmd.msg
+  CubeCmdArray.msg
+  CubeState.msg
+  CubeStateArray.msg
 )
 
 ## Generate services in the 'srv' folder

@@ -19,6 +19,15 @@ namespace iai_qb_cube_driver
       double stiffness_preset_;
   };
 
+  class InternalState
+  {
+    public:
+      short int cube_id_;
+      double joint_position_;
+      double motor1_position_;
+      double motor2_position_; 
+  };
+
   class Driver
   {
     public:
@@ -38,9 +47,7 @@ namespace iai_qb_cube_driver
       comm_settings cube_comm_;
       ros::Publisher pub_;
       ros::Subscriber cmd_sub_;
-      sensor_msgs::JointState msg_;
       int setPosStiff(short int pos, short int stiff, short int cube_id);
-
 
       void cmd_sub_cb_(const iai_qb_cube_msgs::CubeCmdArray::ConstPtr& msg);
 
@@ -65,9 +72,9 @@ namespace iai_qb_cube_driver
       void readMeasurements();
 
       //Variables containing the commands that go out to the joints
-//      std::vector<float> des_joint_eqpoints;
-//      std::vector<float> des_joint_stiffness;
       std::vector<InternalCommand> desired_command_;
+      std::vector<InternalState> current_measurements_;
+      sensor_msgs::JointState msg_;
 
       //Things for the realtime thread
       double timeout_;

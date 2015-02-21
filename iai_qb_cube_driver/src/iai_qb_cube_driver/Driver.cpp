@@ -98,10 +98,9 @@ int Driver::setPosStiff(short int pos, short int stiff, short int cube_id) {
 //Actual function runing in the rt thread
 void* Driver::rt_run()
 {
-
     while(!exitRequested_) {
         //Read state from the modules
-
+        readMeasurements(); 
 
         //lock and write to the in buffer
 
@@ -109,19 +108,14 @@ void* Driver::rt_run()
         //lock and read from the out-buffer
 
         //write to the modules
-        //first = name   second = cube_id
         unsigned int i = 0;
         for (size_t i=0; i<desired_command_.size(); i++)
         {
+            double position = desired_command_[i].equilibrium_point_;
+            double stiffness = desired_command_[i].stiffness_preset_;
 
-            //std::cout << it->first << " => " << it->second << '\n';
-
-            //int cube_id = it->second;
-            double position = desired_command_[i].equilibrium_point_; //des_joint_eqpoints[i];
-            double stiffness = desired_command_[i].stiffness_preset_; // des_joint_stiffness[i];
-
-            // Convert radians to degree. The minus sign is necessary to make an outgoing
-            // revolute axis.
+            // Convert radians to degree. The minus sign is necessary to make 
+            // an outgoing revolute axis.
             position = -position * (180.0 / M_PI);
 
             // Convert degrees to ticks.
@@ -131,19 +125,7 @@ void* Driver::rt_run()
 
             // Stiffness and position set.
             setPosStiff(pos_input, stiff_input, desired_command_[i].cube_id_);
-
-
-            //commGetMeasurements(&cube_comm_, cube_id, opening_measurements);
-
-            //res.position.at(i) =  -(opening_measurements[2]/encoderRate_)*(M_PI/180); // Position in radians.
-            //res.cube_id.at(i) = cube_id;
-            //res.timestamp.at(i) = ros::Time::now().toSec() - start_time;
-
         }
-
-
-
-
 
         //ROS_WARN("rt_run() got called");
         usleep(100000);
@@ -151,9 +133,7 @@ void* Driver::rt_run()
     }
 
     ROS_INFO("exiting rt thread");
-
     //TODO: should we stop the modules and communiction here?
-
 }
 
 
@@ -203,7 +183,6 @@ void Driver::run()
   ros::Rate r(publish_frequency_);
   while(ros::ok())
   {
-    readMeasurements(); 
     msg_.header.stamp = ros::Time::now();
     pub_.publish(msg_);
     r.sleep();
@@ -282,14 +261,26 @@ void Driver::stopCubeCommunication()
 
 void Driver::readMeasurements()
 {
+  assert(cube_id_map_.size() == current_measurements_.size());
+
   // TODO: possibly speed me up by not looking up in the map..
-  for (size_t i=0; i<msg_.name.size(); i++)
+  size_t i = 0;
+  for (iterator_type it=cube_id_map_.begin();  
+       it!=cube_id_map_.end(); ++it)
   { 
-    short int cube_id = cube_id_map_[msg_.name[i]];
+    short int cube_id = it->second;
     short int measurements[3];
     commGetMeasurements(&cube_comm_, cube_id, measurements);
-    // Position in radians.
-    msg_.position[i] = -(measurements[2]/DEG_TICK_MULTIPLIER)*(M_PI/180); 
+    // all measurements in radians
+    // TODO: 1, too, many...
+    current_measurements_[i].motor1_position_ = 
+        - (measurements[0]/DEG_TICK_MULTIPLIER)*(M_PI/180);
+    current_measurements_[i].motor1_position_ = 
+        - (measurements[1]/DEG_TICK_MULTIPLIER)*(M_PI/180);
+    current_measurements_[i].joint_position_ = 
+        - (measurements[2]/DEG_TICK_MULTIPLIER)*(M_PI/180);
+
+    i++;
   }
 }
 
@@ -400,6 +391,8 @@ void Driver::initDatastructures()
   msg_.position.resize(msg_.name.size());
 
   pub_ = nh_.advertise<sensor_msgs::JointState>("joint_state", 1);
+
+  current_measurements_.resize(cube_id_map_.size());
 
   //Get number of joints
 //  int numjoints = cube_id_map_.size();

@@ -212,22 +212,6 @@ void Driver::cmd_sub_cb_(const iai_qb_cube_msgs::CubeCmdArray::ConstPtr& msg)
 
   pthread_scoped_lock scoped_lock(&mutex_);
   desired_command_ = desired_command;
-
-//  //TODO: Guard the writing
-//    //TODO: replace this by comparing the names of the joints
-//    unsigned int len_eq = msg->eq_point_angle.size();
-//    if (len_eq == len_id_map) {
-//        for (unsigned int i = 0; i < len_id_map ; ++i) {
-//            des_joint_eqpoints[i] = msg->eq_point_angle[i];
-//        }
-//    }
-//
-//    unsigned int len_st = msg->stiffness.size();
-//    if (len_st == len_id_map) {
-//        for (unsigned int i = 0; i < len_id_map ; ++i) {
-//            des_joint_stiffness[i] = msg->stiffness[i];
-//        }
-//    }
 }
 
 

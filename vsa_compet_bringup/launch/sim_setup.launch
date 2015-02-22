@@ -1,0 +1,26 @@
+<launch>
+
+  <param name="robot_description" command="$(find xacro)/xacro.py $(find vsa_3dof_arm_description)/urdf/qb/body.urdf.xacro"/>
+	
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher" />
+
+  <!-- Bring together the different joint state messages -->
+  <node pkg="joint_state_publisher" type="joint_state_publisher"
+        name="joint_state_publisher" output="screen">
+    <rosparam param="source_list">
+      - iai_qb_cube_driver/joint_state
+    </rosparam>
+    <rosparam param="zeros">
+      'arm_0_joint': 0
+      'arm_1_joint': 0
+      'arm_2_joint': 0
+      'arm_3_joint': -0.1
+    </rosparam>
+    <param name="rate" value="50"/>
+    <param name="use_gui" value="False"/>
+  </node>
+
+  <include file="$(find iai_qb_cube_driver)/launch/nmmi_challenge.launch"/>
+
+	
+</launch>

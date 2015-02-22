@@ -11,12 +11,21 @@
 
 namespace iai_qb_cube_driver
 {
+  class MotorCommand
+  {
+    public:
+      short int motor1_position_;
+      short int motor2_position_;
+  };
+
   class InternalCommand
   {
     public:
       short int cube_id_;
       double equilibrium_point_;
       double stiffness_preset_;
+
+      MotorCommand toMotorCommand() const;
   };
 
   class InternalState
@@ -37,51 +46,69 @@ namespace iai_qb_cube_driver
       // TODO: make run threaded
       void run();
   
-      bool isCommunicationUp() const { return comm_up_; }
-      bool areCubesActive() const { return cubes_active_; }
-
 
     private:
+      //
       // Communication stuff
+      //
       ros::NodeHandle nh_;
       comm_settings cube_comm_;
       ros::Publisher pub_;
       ros::Subscriber cmd_sub_;
-      int setPosStiff(short int pos, short int stiff, short int cube_id);
 
       void cmd_sub_cb_(const iai_qb_cube_msgs::CubeCmdArray::ConstPtr& msg);
       sensor_msgs::JointState getJointStateMsg();
 
+      //
       // Internal flags
+      //
       bool comm_up_, cubes_active_, sim_mode_;
 
-      // Internal data members
+      bool isCommunicationUp() const { return comm_up_; }
+      bool areCubesActive() const { return cubes_active_; }
+      bool simulationMode() const { return sim_mode_; }
+
+      //
+      // Configuration of the node
+      //
       std::map<std::string, int> cube_id_map_;
       std::string port_;
       double publish_frequency_;
 
+      //
+      // start and stop of cubes
+      //
       bool startCubeCommunication();
       void stopCubeCommunication();
 
       bool activateCubes();
       void deactivateCubes();
 
+      //
+      // I/O with cubes
+      //
       bool readParameters(); 
       void initDatastructures();
+
+      void readMeasurement();
+      void writeCommand();
+      void commandSingleCube(const InternalCommand& command);
+//      int setPosStiff(short int pos, short int stiff, short int cube_id);
+
+      //
+      // Internal buffering between rt-thread and non-rt-thread
+      //
+      std::vector<InternalCommand> command_buffer_;
+      std::vector<InternalState> measurement_buffer_, measurement_tmp_;
 
       const std::vector<InternalCommand>& readCommandBuffer();
       void writeCommandBuffer(const std::vector<InternalCommand>& new_command);
       const std::vector<InternalState>& readMeasurementBuffer();
       void writeMeasurementBuffer(const std::vector<InternalState>& new_measurement);
 
-      void readMeasurement();
-      void writeCommand();
-
-      //Variables containing the commands that go out to the joints
-      std::vector<InternalCommand> command_buffer_;
-      std::vector<InternalState> measurement_buffer_, measurement_tmp_;
-
-      //members to stop and start the rt thread
+      //
+      // rt-thread infrastructure
+      //
       bool start_rt_thread(double timeout);
       void stop_rt_thread();
 

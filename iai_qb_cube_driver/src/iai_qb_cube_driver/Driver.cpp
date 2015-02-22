@@ -18,6 +18,38 @@ private:
   pthread_mutex_t *mutex_;
 };
 
+MotorCommand InternalCommand::toMotorCommand() const
+{
+  // Convert radians to degree. The minus sign is necessary to make 
+  // an outgoing revolute axis.
+  double position = - equilibrium_point_ * (180.0 / M_PI);
+
+  // Convert degrees to ticks.
+  short int pos = position * DEG_TICK_MULTIPLIER;
+  short int stiff = stiffness_preset_ * DEG_TICK_MULTIPLIER;
+
+  // limit equilibrium point command
+  if (pos > (DEFAULT_SUP_LIMIT / pow(2, DEFAULT_RESOLUTION) - DEFAULT_STIFFNESS * DEG_TICK_MULTIPLIER)) {
+    pos = (DEFAULT_SUP_LIMIT / pow(2, DEFAULT_RESOLUTION) - DEFAULT_STIFFNESS * DEG_TICK_MULTIPLIER);
+  } else if (pos < (DEFAULT_INF_LIMIT / pow(2, DEFAULT_RESOLUTION) + DEFAULT_STIFFNESS * DEG_TICK_MULTIPLIER)) {
+    pos = (DEFAULT_INF_LIMIT / pow(2, DEFAULT_RESOLUTION) + DEFAULT_STIFFNESS * DEG_TICK_MULTIPLIER);
+  }
+
+  // limit stiffness preset command
+  if (stiff > DEFAULT_STIFFNESS * DEG_TICK_MULTIPLIER) {
+    stiff = DEFAULT_STIFFNESS * DEG_TICK_MULTIPLIER;
+  } else if (stiff < 0) {
+    stiff = 0;
+  }
+
+  // package the result
+  MotorCommand result;
+  result.motor1_position_ = pos - stiff;
+  result.motor2_position_ = pos + stiff;
+
+  return result;
+}
+
 //Sends a signal to stop the rt thread
 void Driver::stop_rt_thread()
 {
@@ -60,51 +92,20 @@ bool Driver::start_rt_thread(double timeout){
   return true;
 }
 
-/* Function that consider the physical limits of the cube and send the angular */
-/* position to the engine using stiffness and position */
-int Driver::setPosStiff(short int pos, short int stiff, short int cube_id) {
-
-  short int curr_ref[NUM_OF_MOTORS];
-
-  if (pos > (DEFAULT_SUP_LIMIT / pow(2, DEFAULT_RESOLUTION) - DEFAULT_STIFFNESS * DEG_TICK_MULTIPLIER)) {
-    pos = (DEFAULT_SUP_LIMIT / pow(2, DEFAULT_RESOLUTION) - DEFAULT_STIFFNESS * DEG_TICK_MULTIPLIER);
-  } else if (pos < (DEFAULT_INF_LIMIT / pow(2, DEFAULT_RESOLUTION) + DEFAULT_STIFFNESS * DEG_TICK_MULTIPLIER)) {
-    pos = (DEFAULT_INF_LIMIT / pow(2, DEFAULT_RESOLUTION) + DEFAULT_STIFFNESS * DEG_TICK_MULTIPLIER);
-  }
-
-  if (stiff > DEFAULT_STIFFNESS * DEG_TICK_MULTIPLIER) {
-    stiff = DEFAULT_STIFFNESS * DEG_TICK_MULTIPLIER;
-  } else if (stiff < 0) {
-    stiff = 0;
-  }
-
-        // Position for the 2 engine of the cube.
-  curr_ref[0] = pos - stiff;
-  curr_ref[1] = pos + stiff;
-
-  commSetInputs(&cube_comm_, cube_id, curr_ref);
-
-  return 1;
-}
-
 //Actual function runing in the rt thread
 void* Driver::rt_run()
 {
-    while(!exitRequested_) {
-        readMeasurement(); 
-        writeMeasurementBuffer(measurement_tmp_);
+  while(!exitRequested_) {
+    readMeasurement(); 
+    writeMeasurementBuffer(measurement_tmp_);
 
-        readCommandBuffer(); 
-        writeCommand();
+    readCommandBuffer(); 
+    writeCommand();
+  }
 
-        //ROS_WARN("rt_run() got called");
-        //usleep(100000);
-    }
-
-    ROS_INFO("exiting rt thread");
-    //TODO: should we stop the modules and communiction here?
+  ROS_INFO("exiting rt thread");
+  //TODO: should we stop the modules and communiction here?
 }
-
 
 Driver::Driver(const ros::NodeHandle& nh): 
     nh_(nh), comm_up_(false), cubes_active_(false), sim_mode_(false)
@@ -130,16 +131,18 @@ void Driver::run()
 
   initDatastructures();
 
-//  if (!startCubeCommunication())
-//    return;
-//
-//  if (!start_rt_thread(2))
-//      return;
-//
-//  if(!activateCubes())
-//    return;
+  if(!simulationMode())
+  {
+    if (!startCubeCommunication())
+      return;
+ 
+    if(!activateCubes())
+      return;
+  }
 
-
+  if (!start_rt_thread(2))
+      return;
+ 
   cmd_sub_ = nh_.subscribe("command", 1, &Driver::cmd_sub_cb_, this);
 
   ros::AsyncSpinner spinner(1);
@@ -234,26 +237,31 @@ void Driver::stopCubeCommunication()
 
 void Driver::readMeasurement()
 {
-  assert(cube_id_map_.size() == measurement_tmp_.size());
-
-  // TODO: possibly speed me up by not looking up in the map..
-  size_t i = 0;
-  for (iterator_type it=cube_id_map_.begin();  
-       it!=cube_id_map_.end(); ++it)
-  { 
-    short int cube_id = it->second;
-    short int measurements[3];
-    commGetMeasurements(&cube_comm_, cube_id, measurements);
-    // all measurements in radians
-    // TODO: 1, too, many...
-    measurement_tmp_[i].motor1_position_ = 
-        - (measurements[0]/DEG_TICK_MULTIPLIER)*(M_PI/180);
-    measurement_tmp_[i].motor1_position_ = 
-        - (measurements[1]/DEG_TICK_MULTIPLIER)*(M_PI/180);
-    measurement_tmp_[i].joint_position_ = 
-        - (measurements[2]/DEG_TICK_MULTIPLIER)*(M_PI/180);
-
-    i++;
+  // In simulation mode the member writeCommand(...) will update the internal
+  // measurement datastructures. Hence, nothing needs to be done here.
+  if(!simulationMode())
+  {
+    assert(cube_id_map_.size() == measurement_tmp_.size());
+  
+    // TODO: possibly speed me up by not looking up in the map..
+    size_t i = 0;
+    for (iterator_type it=cube_id_map_.begin();  
+         it!=cube_id_map_.end(); ++it)
+    { 
+      short int cube_id = it->second;
+      short int measurements[3];
+      commGetMeasurements(&cube_comm_, cube_id, measurements);
+      // all measurements in radians
+      // TODO: 1, too, many...
+      measurement_tmp_[i].motor1_position_ = 
+          - (measurements[0]/DEG_TICK_MULTIPLIER)*(M_PI/180);
+      measurement_tmp_[i].motor1_position_ = 
+          - (measurements[1]/DEG_TICK_MULTIPLIER)*(M_PI/180);
+      measurement_tmp_[i].joint_position_ = 
+          - (measurements[2]/DEG_TICK_MULTIPLIER)*(M_PI/180);
+  
+      i++;
+    }
   }
 }
 
@@ -262,21 +270,34 @@ void Driver::writeCommand()
   //write to the modules
   unsigned int i = 0;
   for (size_t i=0; i<command_buffer_.size(); i++)
+    commandSingleCube(command_buffer_[i]);
+}
+
+void Driver::commandSingleCube(const InternalCommand& command)
+{
+  MotorCommand motor_cmd = command.toMotorCommand();
+  
+  if(simulationMode())
   {
-      double position = command_buffer_[i].equilibrium_point_;
-      double stiffness = command_buffer_[i].stiffness_preset_;
-  
-      // Convert radians to degree. The minus sign is necessary to make 
-      // an outgoing revolute axis.
-      position = -position * (180.0 / M_PI);
-  
-      // Convert degrees to ticks.
-      double encoderRate_ = DEG_TICK_MULTIPLIER;
-      short int pos_input = position * encoderRate_;
-      short int stiff_input = encoderRate_ * stiffness;
-  
-      // Stiffness and position set.
-      setPosStiff(pos_input, stiff_input, command_buffer_[i].cube_id_);
+    size_t index = 0; // TODO(fix me)
+    for (iterator_type it=cube_id_map_.begin(); it!=cube_id_map_.end(); ++it)
+    {
+      if(it->second == command.cube_id_) break;
+      ++index;
+    }
+ 
+    measurement_tmp_[index].cube_id_ = command.cube_id_;
+    measurement_tmp_[index].joint_position_ = command.equilibrium_point_;
+    measurement_tmp_[index].motor1_position_ = motor_cmd.motor1_position_;
+    measurement_tmp_[index].motor2_position_ = motor_cmd.motor2_position_;
+  }
+  else
+  {
+    short int curr_ref[2];
+    curr_ref[0] = motor_cmd.motor1_position_;
+    curr_ref[1] = motor_cmd.motor2_position_;
+
+    commSetInputs(&cube_comm_, command.cube_id_, curr_ref);
   }
 }
 
@@ -402,6 +423,13 @@ void Driver::initDatastructures()
 
   measurement_buffer_.resize(cube_id_map_.size());
   measurement_tmp_.resize(cube_id_map_.size());
+  size_t i=0;
+  for(iterator_type it = cube_id_map_.begin(); it != cube_id_map_.end(); it++) 
+  {
+    measurement_buffer_[i].cube_id_ = it->second; 
+    measurement_tmp_[i].cube_id_ = it->second; 
+    ++i;
+  }
 }
 
 const std::vector<InternalCommand>& Driver::readCommandBuffer()

@@ -201,7 +201,12 @@ sensor_msgs::JointState Driver::getJointStateMsg()
       msg.position.push_back(measurement[i].joint_position_);
     }
     else
+    {
       ROS_WARN("Mismatching cube-id during construction of JointState message.");
+      ROS_WARN("measurement[i].cube_id_ == %d", measurement[i].cube_id_);
+      ROS_WARN("it->second == %d", it->second);
+    }
+    ++i;
   }
 
   return msg;
@@ -424,7 +429,7 @@ void Driver::initDatastructures()
   measurement_buffer_.resize(cube_id_map_.size());
   measurement_tmp_.resize(cube_id_map_.size());
   size_t i=0;
-  for(iterator_type it = cube_id_map_.begin(); it != cube_id_map_.end(); it++) 
+  for(iterator_type it = cube_id_map_.begin(); it != cube_id_map_.end(); ++it) 
   {
     measurement_buffer_[i].cube_id_ = it->second; 
     measurement_tmp_[i].cube_id_ = it->second; 

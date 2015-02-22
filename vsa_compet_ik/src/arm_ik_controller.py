@@ -69,28 +69,45 @@ class arm_ik_controller(object):
         rospy.loginfo("Got a new command")
         rospy.loginfo("source_frame: %s  tip_frame: %s", msg.header.frame_id, msg.child_frame_id)
         
-        pose = kdl.Frame()
         
-        pose.p = kdl.Vector(msg.transform.translation.x, msg.transform.translation.y, msg.transform.translation.z)
-        pose.M = kdl.Rotation.Quaternion(msg.transform.rotation.x, msg.transform.rotation.y, msg.transform.rotation.z, msg.transform.rotation.w)
+        debug = False
         
-        print "trans: ", pose.p
-        print "quat: ", pose.M.GetQuaternion()
-        
-        
-        if msg.header.frame_id != self.tf_base_link_name:
-            rospy.logerr("Mismatch in source frames")
+        if debug: 
+            pose = kdl.Frame()
+            
+            pose.p = kdl.Vector(msg.transform.translation.x, msg.transform.translation.y, msg.transform.translation.z)
+            pose.M = kdl.Rotation.Quaternion(msg.transform.rotation.x, msg.transform.rotation.y, msg.transform.rotation.z, msg.transform.rotation.w)
+            
+            print "trans: ", pose.p
+            print "quat: ", pose.M.GetQuaternion()
+           
+       
         if msg.child_frame_id != self.tf_end_link_name:
-            rospy.logerr("Mismatch end link frames")
-
-        q_sol = self.kdl_kin.inverse(kdlpose_to_matrix(pose), q_guess=None)
-    
+            rospy.logerr("Mismatch in end link frames. Got: %s  Wanted: %s", msg.child_frame_id, self.kdl_kin.end_link)        
+            return
+        #FIXME: react to changes in tf_end_link_name and rebuild the chain accordingly
+        
+        #Transform the desired pose to the right reference frame
+        from geometry_msgs.msg import PoseStamped
+        ps = PoseStamped()
+        ps.pose.position = msg.transform.translation
+        ps.pose.orientation = msg.transform.rotation
+        ps.header.frame_id = msg.header.frame_id
+        #Use TF for the transformation  FIXME: Guard this and react to not finding it
+        ps_in_base_link = self.tf_listener.transformPose(self.kdl_kin.base_link, ps)
+        
+        #Do the inverse kinematicss
+        q_sol = self.kdl_kin.inverse(ps_in_base_link, q_guess=None)
+        
+        
         if q_sol is None:
             rospy.loginfo("IK did not find a solution")
             return
             
         joint_names = self.kdl_kin.get_joint_names()
         
+        
+        #Prepare the message for the cube driver        
         out_msg = CubeCmdArray()
         
         for i,joint in enumerate(joint_names):

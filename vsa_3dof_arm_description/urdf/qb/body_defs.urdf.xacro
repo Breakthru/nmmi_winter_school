@@ -44,7 +44,7 @@
 			<visual>
 				<origin xyz="0 0 0" rpy="0 0 0" />
 				<geometry>
-	            	<mesh filename="package://body_description/meshes/qb/cube.stl" />
+	            	<mesh filename="package://vsa_3dof_arm_description/meshes/qb/cube.stl" />
 				</geometry>
 			<material name="DLR/Blue" />
 			</visual>

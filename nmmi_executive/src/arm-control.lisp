@@ -26,9 +26,35 @@
 ;;; ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 ;;; POSSIBILITY OF SUCH DAMAGE.
 
-(in-package :cl-user)
+(in-package :nmmi-executive)
 
-(defpackage nmmi-executive
-  (:use :common-lisp :roslisp :cl-transforms :cl-tf2)
-  (:shadow :transform)
-  (:export :main))
+(defgeneric to-msg (data))
+
+(defmethod to-msg ((data cl-transforms:3d-vector))
+  (with-slots (x y z) data
+    (make-msg "geometry_msgs/Vector3" :x x :y y :z z)))
+   
+(defmethod to-msg ((data cl-transforms:quaternion))
+  (with-slots (x y z w) data
+    (make-msg "geometry_msgs/Quaternion" :x x :y y :z z :w w)))
+
+(defmethod to-msg ((data cl-transforms:transform))
+  (with-slots (translation rotation) data
+    (make-msg "geometry_msgs/Transform" 
+              :translation (to-msg translation):rotation (to-msg rotation))))
+                
+(defmethod to-msg ((data cl-tf2::header))
+  (with-slots (frame-id stamp) data
+    (make-msg "std_msgs/Header" :stamp stamp :frame_id frame-id)))
+  
+(defmethod to-msg ((data cl-tf2::stamped-transform))
+  (with-slots (header child-frame-id (transform cl-tf2:transform)) data
+    (make-msg 
+     "geometry_msgs/TransformStamped" 
+     :header (to-msg header) :child_frame_id child-frame-id :transform (to-msg transform))))
+
+(defun init-arm-control ()
+  (advertise "/arm_controller/command" "geometry_msgs/TransformStamped"))
+
+(defun move-arm-absolute (arm-controller stamped-transform)
+  (publish arm-controller (to-msg stamped-transform)))

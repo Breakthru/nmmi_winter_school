@@ -7,10 +7,13 @@
   :licence "BSD"
   :description "CRAM executive for the NMMI challenge."
   :depends-on (:roslisp
+               :cl-transforms
+               :cl-tf2
                :cram-language
                :geometry_msgs-msg)
   :components
   ((:module "src"
             :components
             ((:file "package")
-             (:file "main" :depends-on ("package"))))))
+             (:file "arm-control" :depends-on ("package"))
+             (:file "main" :depends-on ("package" "arm-control"))))))

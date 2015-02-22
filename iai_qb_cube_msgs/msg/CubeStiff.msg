@@ -1,0 +1,2 @@
+string joint_name
+float64 stiffness_preset

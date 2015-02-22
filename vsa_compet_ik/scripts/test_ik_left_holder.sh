@@ -9,8 +9,8 @@ rostopic pub -1 /arm_controller/command geometry_msgs/TransformStamped "header:
 child_frame_id: 'arm_fixed_finger'
 transform:
   translation:
-    x: 0.0
-    y: $1
+    x: $1
+    y: $2
     z: 0.0
   rotation:
     x: 0.0

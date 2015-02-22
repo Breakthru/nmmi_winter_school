@@ -165,15 +165,17 @@ void Driver::cmd_sub_cb_(const iai_qb_cube_msgs::CubeCmdArray::ConstPtr& msg)
   std::vector<InternalCommand> desired_command;
   for(size_t i=0; i<msg->commands.size(); i++)
   {
-    if(cube_id_map_[msg->commands[i].joint_name] == 1)
+    if(cube_id_map_.count(msg->commands[i].joint_name) == 1)
     {
-      // assert: joint_name is none to us
+      // assert: joint_name is known to us
       InternalCommand new_command;
       new_command.cube_id_ = cube_id_map_[msg->commands[i].joint_name];
       new_command.equilibrium_point_ = msg->commands[i].equilibrium_point;
       new_command.stiffness_preset_ = msg->commands[i].stiffness_preset;
       desired_command.push_back(new_command);
     }
+    else
+      ROS_WARN("Asked to command unknown joint %s", msg->commands[i].joint_name.c_str());
   }
 
   ROS_WARN("New setpoints.");

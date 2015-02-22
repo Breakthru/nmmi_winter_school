@@ -1,0 +1,121 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro" name="body">
+
+
+  <xacro:property name="c_flange" value="90" />
+  <xacro:property name="scale_f" value="1000" />
+  <xacro:property name="cube_size" value="66" />
+  <xacro:property name="arm_height" value="0.3" />
+
+  <xacro:include filename="$(find vsa_3dof_arm_description)/urdf/qb/body_defs.urdf.xacro"/>
+  <xacro:include filename="$(find vsa_3dof_arm_description)/urdf/materials.urdf.xacro"/>
+
+  <link name="base_link">
+    <visual>
+      <origin xyz="0 0 0.25" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.088 0.088 0.5"/>
+      </geometry>
+      <material name="Gray">
+      	<color rgba = "0.4 0.4 0.4 1" />
+      </material>
+    </visual>
+	<collision>
+      		<origin xyz="0 0 0.25" rpy="0 0 0"/>
+      		<geometry>
+        	<box size="0.088 0.088 0.5"/>
+     		 </geometry>
+    	</collision>
+  </link>
+
+
+  <link name="horizontal_bar_link">
+    <visual>
+      <origin xyz="0 0 0.022" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.088 0.5 0.044"/>
+      </geometry>
+      <material name="Gray">
+      	<color rgba = "0.4 0.4 0.4 1" />
+      </material>
+    </visual>
+	<collision>
+      		<origin xyz="0 0 0.022" rpy="0 0 0"/>
+      		<geometry>
+        	<box size="0.088 0.5 0.044"/>
+     		 </geometry>
+    	</collision>
+  </link>
+
+  <joint name="horizontal_bar_joint" type="fixed" >
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <parent link="base_link" />
+      <child link="horizontal_bar_link" />
+  </joint>
+
+
+  <!-- Left holder -->
+  <link name="left_holder_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <sphere radius="0.03"/>
+      </geometry>
+      <material name="Green">
+      	<color rgba = "0 0.4 0 1" />
+      </material>
+    </visual>
+	<collision>
+      	    <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+              <sphere radius="0.03"/>
+            </geometry>
+    	</collision>
+  </link>
+
+  <joint name="left_holder_joint" type="fixed" >
+      <origin xyz="0 -0.15 0.089" rpy="0 0 0"/>
+      <parent link="base_link" />
+      <child link="left_holder_link" />
+  </joint>
+
+
+  <!-- Right holder -->
+  <link name="right_holder_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <sphere radius="0.03"/>
+      </geometry>
+      <material name="Red">
+      	<color rgba = "0.4 0 0 1" />
+      </material>
+    </visual>
+	<collision>
+      	    <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+              <sphere radius="0.03"/>
+            </geometry>
+    	</collision>
+  </link>
+
+  <joint name="right_holder_joint" type="fixed" >
+      <origin xyz="0 0.15 0.089" rpy="0 0 0"/>
+      <parent link="base_link" />
+      <child link="right_holder_link" />
+  </joint>
+
+
+
+  <!--  VSA 3 DOF + gripper arm -->
+
+  <link name="arm_mounting_frame"/>
+  <joint name="arm_mounting_joint" type="fixed" >
+      <origin xyz="0.088 0 ${- cube_size/2/scale_f + arm_height}" rpy="${pi} 0 0"/>
+      <parent link="base_link" />
+      <child link="arm_mounting_frame" />
+  </joint>
+
+  <xacro:vsa_3dof_arm parent="arm_mounting_frame" name="3dof_arm"/>
+
+</robot>

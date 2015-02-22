@@ -1,0 +1,118 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+
+<!-- constants -->
+
+	<xacro:property name="damping_all" value="1" />
+	<xacro:property name="pi" value="3.1415926535897931" />
+	<xacro:property name="low_b" value="-140" />
+	<xacro:property name="up_b" value="140" />
+	<xacro:property name="velocity" value="0.005" />
+	<xacro:property name="effort" value="100" />
+	<xacro:property name="one_flange" value="78" />
+	<xacro:property name="two_flanges" value="92" />
+	<xacro:property name="c_flange" value="90" />
+	<xacro:property name="cube_size" value="66" />
+	<xacro:property name="scale_f" value="1000" />
+	<xacro:property name="cube_mass" value="0.260" />
+	<xacro:property name="flange_c_mass" value="0.030" />
+	<xacro:property name="flange_u_mass" value="0.052" />
+	<xacro:property name="hand_mass" value="0.384" />
+	<xacro:property name="hand_size" value="89" />
+	<xacro:property name="hand_height" value="145" />
+	<xacro:property name="hand_width" value="15" />
+	<xacro:property name="hand_length" value="95" />
+	<xacro:property name="thumb_height" value="60" />
+	<xacro:property name="thumb_width" value="20" />
+	<xacro:property name="thumb_length" value="20" />
+	<xacro:property name="height" value="36" />
+	<xacro:property name="length" value="64" />
+	<xacro:property name="width" value="64" />
+
+
+	
+<!-- Definiton of the QB cube -->
+
+	<xacro:macro name="cube" params="parent name position orientation" >
+
+		<joint name="${name}_dummy_joint" type="fixed" >
+			<origin xyz="${position}" rpy="${orientation}" />
+			<parent link="${parent}" />
+			<child link="${name}_mesh_link" />
+		</joint>
+		<link name="${name}_mesh_link" >
+			<visual>
+				<origin xyz="0 0 0" rpy="0 0 0" />
+				<geometry>
+	            	<mesh filename="package://body_description/meshes/qb/cube.stl" />
+				</geometry>
+			<material name="DLR/Blue" />
+			</visual>
+		    <collision>
+		      <origin xyz="0 0 0" rpy="0 0 0" />
+		      <geometry>
+		        <box size="${cube_size/scale_f} ${cube_size/scale_f} ${cube_size/scale_f}" />
+		      </geometry>
+		    </collision>
+		</link>
+
+		<joint name="${name}_joint" type="revolute" >
+			<origin xyz="0 0 0" rpy="0 0 0" />
+			<parent link="${name}_mesh_link" />
+			<child link="${name}_link" />
+			<axis xyz="0 0 1" />
+			<dynamics damping="${damping_all}" />
+			<limit lower="${low_b * pi / 180}" upper="${up_b * pi / 180}" effort="${effort}" velocity="${velocity}"/>
+		</joint>
+
+		<link name="${name}_link">
+			<inertial>
+					<mass value="${cube_mass + flange_c_mass}" />
+					<inertia ixx="0.00020" ixy="0.0" ixz="0.0" iyy="0.0002" iyz="0.0" izz="0.00018" /> 
+			</inertial>
+		</link>
+	</xacro:macro>
+
+  
+
+<!-- Definiton of the 3DOF arm -->
+	<xacro:macro name="vsa_3dof_arm" params="parent name" >
+		<joint name="${name}_dummy_joint" type="fixed" >
+			<parent link="${parent}" />
+			<child link="${name}_dummy_link" />
+		</joint>
+
+		<link name="${name}_dummy_link"/>
+
+		<xacro:cube parent="${name}_dummy_link" name="${name}_1" 
+                  position="0 0 0" orientation="0 0 0" />
+
+		<xacro:cube parent="${name}_1_link" name="${name}_2" 
+                  position="${c_flange/scale_f} 0 0" orientation="0 0 0" />
+
+		<xacro:cube parent="${name}_2_link" name="${name}_3" 
+                  position="${c_flange/scale_f} 0 0" orientation="0 0 0" />
+
+		<xacro:cube parent="${name}_3_link" name="${name}_4" 
+                  position="0 0 ${one_flange/scale_f} " orientation="${pi / 2} 0 0" />
+
+                <link name="${name}_fixed_finger"/>
+                <joint name="${name}_fixed_finger_joint" type="fixed" >
+                    <origin xyz="0 0.1 0" rpy="${- pi/2} 0  0"/>
+                    <parent link="${name}_4_mesh_link" />
+                    <child link="${name}_fixed_finger" />
+                </joint>
+
+
+                <link name="${name}_rotating_finger"/>
+                <joint name="${name}_rotating_finger_joint" type="fixed" >
+                    <origin xyz="0 0.1 0" rpy="${- pi/2} 0  0"/>
+                    <parent link="${name}_4_link" />
+                    <child link="${name}_rotating_finger" />
+                </joint>
+
+
+
+	</xacro:macro>
+
+</robot>

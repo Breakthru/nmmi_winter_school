@@ -1,0 +1,8 @@
+<launch>
+  <arg name="sim_mode" default="true"/>
+
+  <include file="$(find iai_qb_cube_driver)/launch/iai_qb_cube_driver.launch">
+    <arg name="sim_mode" value="$(arg sim_mode)"/>
+    <arg name="config_file" value="$(find iai_qb_cube_driver)/config/nmmi-challenge.yaml"/>
+  </include>
+</launch>

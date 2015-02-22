@@ -1,13 +1,11 @@
 <launch>
-  <arg name="sim_mode" default="true"/>
+  <arg name="sim_mode"/>
+  <arg name="config_file"/>
 
-  <node pkg="iai_qb_cube_driver" type="iai_qb_cube_driver" name="iai_qb_cube_driver" launch-prefix="with_realtime"
-        output="screen">
-    <rosparam param="joint_names">["cube_1_joint"]</rosparam>
-    <rosparam param="cube_1_joint/id">1</rosparam>
-    <rosparam param="cube_2_joint/id">2</rosparam>
-    <rosparam param="publish_frequency">50.0</rosparam>
-    <rosparam param="port">"/dev/ttyUSB0"</rosparam>
+  <rosparam command="load" file="$(arg config_file)"/>
+
+  <node pkg="iai_qb_cube_driver" type="iai_qb_cube_driver" 
+        name="iai_qb_cube_driver" launch-prefix="with_realtime" output="screen">
     <param name="sim_mode" value="$(arg sim_mode)" />
   </node>
 </launch>

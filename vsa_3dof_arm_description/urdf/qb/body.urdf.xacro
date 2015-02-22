@@ -6,6 +6,7 @@
   <xacro:property name="scale_f" value="1000" />
   <xacro:property name="cube_size" value="66" />
   <xacro:property name="arm_height" value="0.3" />
+  <xacro:property name="holder_height" value="0.089" />
 
   <xacro:include filename="$(find vsa_3dof_arm_description)/urdf/qb/body_defs.urdf.xacro"/>
   <xacro:include filename="$(find vsa_3dof_arm_description)/urdf/materials.urdf.xacro"/>
@@ -59,7 +60,7 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
-        <sphere radius="0.03"/>
+        <sphere radius="0.01"/>
       </geometry>
       <material name="Green">
       	<color rgba = "0 0.4 0 1" />
@@ -68,13 +69,13 @@
 	<collision>
       	    <origin xyz="0 0 0" rpy="0 0 0"/>
             <geometry>
-              <sphere radius="0.03"/>
+              <sphere radius="0.01"/>
             </geometry>
     	</collision>
   </link>
 
   <joint name="left_holder_joint" type="fixed" >
-      <origin xyz="0 -0.15 0.089" rpy="0 0 0"/>
+      <origin xyz="${0.044 + 0.030} -0.16 ${holder_height}" rpy="0 0 0"/>
       <parent link="base_link" />
       <child link="left_holder_link" />
   </joint>
@@ -85,7 +86,7 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
-        <sphere radius="0.03"/>
+        <sphere radius="0.01"/>
       </geometry>
       <material name="Red">
       	<color rgba = "0.4 0 0 1" />
@@ -94,13 +95,13 @@
 	<collision>
       	    <origin xyz="0 0 0" rpy="0 0 0"/>
             <geometry>
-              <sphere radius="0.03"/>
+              <sphere radius="0.01"/>
             </geometry>
     	</collision>
   </link>
 
   <joint name="right_holder_joint" type="fixed" >
-      <origin xyz="0 0.15 0.089" rpy="0 0 0"/>
+      <origin xyz="${0.044 + 0.030} 0.16 ${holder_height}" rpy="0 0 0"/>
       <parent link="base_link" />
       <child link="right_holder_link" />
   </joint>
@@ -111,11 +112,20 @@
 
   <link name="arm_mounting_frame"/>
   <joint name="arm_mounting_joint" type="fixed" >
-      <origin xyz="0.088 0 ${- cube_size/2/scale_f + arm_height}" rpy="${pi} 0 0"/>
+      <origin xyz="${0.044 + 0.0535 - cube_size/2/scale_f} 0 ${- cube_size/2/scale_f + arm_height}" rpy="${pi} 0 0"/>
       <parent link="base_link" />
       <child link="arm_mounting_frame" />
   </joint>
 
-  <xacro:vsa_3dof_arm parent="arm_mounting_frame" name="3dof_arm"/>
+  <xacro:vsa_3dof_arm parent="arm_mounting_frame" name="arm"/>
+
+  <!-- Adding a link at the only height the arm can reach -->
+  <link name="base_link_zero"/>
+  <joint name="base_link_zero_joint" type="fixed">
+    <origin xyz="0 0 ${-holder_height}" rpy="0 0 0"/>
+      <parent link="base_link_zero" />
+      <child link="base_link" />
+  </joint>
+
 
 </robot>

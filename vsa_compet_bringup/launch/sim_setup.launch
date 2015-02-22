@@ -22,5 +22,6 @@
 
   <include file="$(find iai_qb_cube_driver)/launch/nmmi_challenge.launch"/>
 
+  <node pkg="vsa_compet_ik" type="arm_ik_controller.py" name="arm_ik_controller"/>
 	
 </launch>

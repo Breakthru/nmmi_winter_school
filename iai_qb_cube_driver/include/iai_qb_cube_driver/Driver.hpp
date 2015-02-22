@@ -5,6 +5,7 @@
 #include <ros/ros.h>
 #include <sensor_msgs/JointState.h>
 #include <iai_qb_cube_msgs/CubeCmdArray.h>
+#include <iai_qb_cube_msgs/CubeStateArray.h>
 
 #include <pthread.h>
 
@@ -53,11 +54,13 @@ namespace iai_qb_cube_driver
       //
       ros::NodeHandle nh_;
       comm_settings cube_comm_;
-      ros::Publisher pub_;
+      ros::Publisher pub_, cube_pub_;
       ros::Subscriber cmd_sub_;
 
       void cmd_sub_cb_(const iai_qb_cube_msgs::CubeCmdArray::ConstPtr& msg);
       sensor_msgs::JointState getJointStateMsg();
+      iai_qb_cube_msgs::CubeStateArray getCubeStateMsg();
+
 
       //
       // Internal flags
@@ -93,7 +96,6 @@ namespace iai_qb_cube_driver
       void readMeasurement();
       void writeCommand();
       void commandSingleCube(const InternalCommand& command);
-//      int setPosStiff(short int pos, short int stiff, short int cube_id);
 
       //
       // Internal buffering between rt-thread and non-rt-thread

@@ -155,6 +155,8 @@ void Driver::run()
   while(ros::ok())
   {
     pub_.publish(getJointStateMsg());
+    cube_pub_.publish(getCubeStateMsg());
+ 
     r.sleep();
   }
 
@@ -207,6 +209,41 @@ sensor_msgs::JointState Driver::getJointStateMsg()
     else
     {
       ROS_WARN("Mismatching cube-id during construction of JointState message.");
+      ROS_WARN("measurement[i].cube_id_ == %d", measurement[i].cube_id_);
+      ROS_WARN("it->second == %d", it->second);
+    }
+    ++i;
+  }
+
+  return msg;
+}
+
+iai_qb_cube_msgs::CubeStateArray Driver::getCubeStateMsg()
+{
+  iai_qb_cube_msgs::CubeStateArray msg;
+  std::vector<InternalState> measurement = readMeasurementBuffer();
+
+  assert(cube_id_map_.size() == measurement.size());
+
+  msg.header.stamp = ros::Time::now();
+
+  size_t i=0;
+  for (iterator_type it=cube_id_map_.begin();  
+       it!=cube_id_map_.end(); ++it)
+  { 
+    if(measurement[i].cube_id_ == it->second)
+    {
+      iai_qb_cube_msgs::CubeState m;
+      m.joint_name = it->first;
+      m.cube_id = measurement[i].cube_id_;
+      m.pos_motor1 = measurement[i].motor1_position_;
+      m.pos_motor2 = measurement[i].motor2_position_;
+      m.pos_joint = measurement[i].joint_position_;
+      msg.states.push_back(m);
+    }
+    else
+    {
+      ROS_WARN("Mismatching cube-id during construction of CubeState message.");
       ROS_WARN("measurement[i].cube_id_ == %d", measurement[i].cube_id_);
       ROS_WARN("it->second == %d", it->second);
     }
@@ -297,8 +334,10 @@ void Driver::commandSingleCube(const InternalCommand& command)
  
     measurement_tmp_[index].cube_id_ = command.cube_id_;
     measurement_tmp_[index].joint_position_ = command.equilibrium_point_;
-    measurement_tmp_[index].motor1_position_ = motor_cmd.motor1_position_;
-    measurement_tmp_[index].motor2_position_ = motor_cmd.motor2_position_;
+    measurement_tmp_[index].motor1_position_ = 
+        - (motor_cmd.motor1_position_/DEG_TICK_MULTIPLIER)*(M_PI/180);
+    measurement_tmp_[index].motor2_position_ = 
+        - (motor_cmd.motor2_position_/DEG_TICK_MULTIPLIER)*(M_PI/180);
   }
   else
   {
@@ -429,6 +468,7 @@ void Driver::deactivateCubes()
 void Driver::initDatastructures()
 {
   pub_ = nh_.advertise<sensor_msgs::JointState>("joint_state", 1);
+  cube_pub_ = nh_.advertise<iai_qb_cube_msgs::CubeStateArray>("cube_state", 1);
 
   measurement_buffer_.resize(cube_id_map_.size());
   measurement_tmp_.resize(cube_id_map_.size());

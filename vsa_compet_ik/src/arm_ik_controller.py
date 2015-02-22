@@ -48,6 +48,7 @@ from pykdl_utils.kdl_kinematics import KDLKinematics
 import numpy
 import geometry_msgs
 
+from sensor_msgs.msg import JointState
 from iai_qb_cube_msgs.msg import CubeCmdArray
 from iai_qb_cube_msgs.msg import CubeCmd
 from iai_qb_cube_msgs.msg import CubeStiff
@@ -91,14 +92,19 @@ class arm_ik_controller(object):
 
         #Data structure containing the goals for the cubes
         self.arm_setpoints = dict()
+        self.arm_jointdata = dict()
         for name in self.arm_joint_names:
             self.arm_setpoints[name] = {'stiff':0.0, 'eq_point':0.0}
+            self.arm_jointdata[name] = {'pos':0.0}
             
         #Start the subscriber
         rospy.Subscriber(self.ros_transform_topic_name, geometry_msgs.msg.TransformStamped, self.cb_command)
         
         #Another subscriber for the stiffness data
         rospy.Subscriber(self.ros_stiff_topic_name, CubeStiffArray, self.cb_stiff_command)
+        
+        #Subscriber to find the current joint positions
+        rospy.Subscriber("/iai_qb_cube_driver/joint_state", JointState, self.cb_joint_states )
         
         #Prepare our publisher
         self.cubes_pub = rospy.Publisher("/iai_qb_cube_driver/command", CubeCmdArray)
@@ -137,7 +143,7 @@ class arm_ik_controller(object):
         out_msg = CubeCmdArray()
     
         #Fill in the values from the arm_setpoints dict  
-        for i,joint_name in enumerate(self.arm_joint_names):
+        for joint_name in self.arm_joint_names:
             cubecmd = CubeCmd()
             cubecmd.joint_name = joint_name
             cubecmd.equilibrium_point = self.arm_setpoints[joint_name]['eq_point']
@@ -147,7 +153,12 @@ class arm_ik_controller(object):
         print out_msg
         self.cubes_pub.publish(out_msg)
 
-
+    def get_current_joint_pos(self):
+        q_current = []
+        for name in self.arm_joint_names:
+            q_current.append(self.arm_jointdata[name]['pos'])
+        return q_current
+    
 
     def cb_command(self, msg):
         rospy.loginfo("New command. source_frame: %s  tip_frame: %s", msg.header.frame_id, msg.child_frame_id)
@@ -177,11 +188,17 @@ class arm_ik_controller(object):
         ps.pose.position = msg.transform.translation
         ps.pose.orientation = msg.transform.rotation
         ps.header.frame_id = msg.header.frame_id
-        #Use TF for the transformation  FIXME: Guard this and react to not finding it
-        ps_in_base_link = self.tf_listener.transformPose(self.kdl_kin.base_link, ps)
+        #Use TF for the transformation
+        try:
+            ps_in_base_link = self.tf_listener.transformPose(self.kdl_kin.base_link, ps)
+        except:
+            rospy.logerr("Could not transform the goal pose.")
+            return
+        
 
-        #Do the inverse kinematicss
-        q_sol = self.kdl_kin.inverse(ps_in_base_link, q_guess=None)
+        #Do the inverse kinematics
+        rospy.loginfo("Current joint pos: %s", self.get_current_joint_pos())
+        q_sol = self.kdl_kin.inverse(ps_in_base_link, q_guess=self.get_current_joint_pos())
 
 
         if q_sol is None:
@@ -192,11 +209,16 @@ class arm_ik_controller(object):
         #Save the result to the arm_setpoints dict
         for i,name in enumerate(self.arm_joint_names):
             self.arm_setpoints[name]['eq_point'] = q_sol[i]
-            
 
         self.send_command_to_cubes()
         
 
+    def cb_joint_states(self, msg):
+        
+        for i, name in enumerate(msg.name):
+            if self.arm_jointdata.has_key(name):
+                self.arm_jointdata[name]['pos'] = msg.position[i]
+            
 
 
 

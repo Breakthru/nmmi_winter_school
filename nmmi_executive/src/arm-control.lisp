@@ -53,8 +53,26 @@
      "geometry_msgs/TransformStamped" 
      :header (to-msg header) :child_frame_id child-frame-id :transform (to-msg transform))))
 
+(defun to-stiffness-msg (stiffness-presets)
+  (labels ((to-msg-rec (stiffness-presets)
+           (when stiffness-presets
+             (destructuring-bind (joint-name stiffness-preset &rest remainder) 
+                 stiffness-presets
+               (concatenate 'list
+                            (list (make-msg "iai_qb_cube_msgs/CubeStiff"
+                                            :joint_name (string-downcase (string joint-name))
+                                            :stiffness_preset stiffness-preset))
+                            (to-msg-rec remainder))))))
+    (make-msg "iai_qb_cube_msgs/CubeStiffArray"
+              :stiffness_presets (coerce (to-msg-rec stiffness-presets) 'vector))))
+    
 (defun init-arm-control ()
-  (advertise "/arm_controller/command" "geometry_msgs/TransformStamped"))
+  (values
+   (advertise "/arm_controller/command" "geometry_msgs/TransformStamped")
+   (advertise "/arm_controller/stiff_command" "iai_qb_cube_msgs/CubeStiffArray")))
 
-(defun move-arm-absolute (arm-controller stamped-transform)
-  (publish arm-controller (to-msg stamped-transform)))
+(defun move-arm-absolute (arm-control stiff-control goal)
+  (let ((transform (getf goal :goal-transform))
+        (stiffness-presets (getf goal :stiffness-presets)))
+    (publish arm-control (to-msg transform))
+    (publish stiff-control (to-stiffness-msg stiffness-presets))))

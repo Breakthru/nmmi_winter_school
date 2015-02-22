@@ -29,18 +29,21 @@
 (in-package :nmmi-executive)
 
 (defun init-nmmi-executive ()
-  (let ((arm-control (init-arm-control)))
+  (multiple-value-bind (arm-control stiff-control) (init-arm-control)
     ;; wait for everything to settle down
     (sleep 1)
-    `(:arm-control ,arm-control)))
+    `(:arm-control ,arm-control :stiff-control ,stiff-control)))
 
 (defun run-nmmi-executive (handle)
   (let ((left-target 
-          (make-stamped-transform 
-           "left_holder_link" "arm_fixed_finger" 0.0
-           (make-transform (make-3d-vector 0.0 -0.05 0.0)
-                           (make-identity-rotation)))))
-    (move-arm-absolute (getf handle :arm-control) left-target)))
+          `(:goal-transform
+            ,(make-stamped-transform 
+              "left_holder_link" "arm_fixed_finger" 0.0
+              (make-transform (make-3d-vector 0.0 -0.05 0.0)
+                              (make-identity-rotation)))
+            :stiffness-presets (:arm_1_joint 15 :arm_2_joint 15 :arm_3_joint 15))))
+    (move-arm-absolute 
+     (getf handle :arm-control) (getf handle :stiff-control) left-target)))
 
 (defun main ()
   (with-ros-node ("nmmi_executive" :spin t)

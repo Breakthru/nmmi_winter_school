@@ -10,7 +10,8 @@
                :cl-transforms
                :cl-tf2
                :cram-language
-               :geometry_msgs-msg)
+               :geometry_msgs-msg
+               :iai_qb_cube_msgs-msg)
   :components
   ((:module "src"
             :components

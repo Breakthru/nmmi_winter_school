@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<package>
+  <name>nmmi_executive</name>
+  <version>0.0.0</version>
+  <description>The nmmi_executive package</description>
+
+  <author email="georg.bartels@cs.uni-bremen.de">Georg Bartels</author>
+  <maintainer email="georg.bartels@cs.uni-bremen.de">Georg Bartels</maintainer>
+
+  <license>BSD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>cram_language</build_depend>
+  <build_depend>roslisp</build_depend>
+  <build_depend>geometry_msgs</build_depend>
+  <run_depend>cram_language</run_depend>
+  <run_depend>roslisp</run_depend>
+  <run_depend>geometry_msgs</run_depend>
+
+</package>

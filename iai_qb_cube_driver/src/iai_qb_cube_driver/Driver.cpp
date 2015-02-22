@@ -101,6 +101,8 @@ void* Driver::rt_run()
 
     readCommandBuffer(); 
     writeCommand();
+    if (simulationMode())
+    	usleep(1000);
   }
 
   ROS_INFO("exiting rt thread");

@@ -106,7 +106,8 @@ void* Driver::rt_run()
 }
 
 
-Driver::Driver(const ros::NodeHandle& nh): nh_(nh), comm_up_(false)
+Driver::Driver(const ros::NodeHandle& nh): 
+    nh_(nh), comm_up_(false), cubes_active_(false), sim_mode_(false)
 {
     //set up the mutex
     pthread_mutexattr_t mattr;
@@ -295,6 +296,13 @@ bool Driver::readParameters()
     return false;
   }
 
+  if(!nh_.getParam("sim_mode", sim_mode_))
+  {
+    ROS_ERROR("No parameter 'sim_mode' in namespace %s found", 
+        nh_.getNamespace().c_str());
+    return false;
+  }
+
   std::vector<std::string> joint_names;
   if(!nh_.getParam("joint_names", joint_names))
   {
@@ -315,6 +323,12 @@ bool Driver::readParameters()
     }
     cube_id_map_.insert(std::pair<std::string, int>(joint_names[i], cube_id));
   }
+
+  std::cout << "Starting cubes in ";
+  if (sim_mode_)
+    std::cout << "simulation mode\n";
+  else
+    std::cout << "real-world mode\n";
 
   std::cout << "joint-names:\n";
   for (size_t i=0; i<joint_names.size(); i++)

@@ -53,7 +53,7 @@ namespace iai_qb_cube_driver
       sensor_msgs::JointState getJointStateMsg();
 
       // Internal flags
-      bool comm_up_, cubes_active_;
+      bool comm_up_, cubes_active_, sim_mode_;
 
       // Internal data members
       std::map<std::string, int> cube_id_map_;

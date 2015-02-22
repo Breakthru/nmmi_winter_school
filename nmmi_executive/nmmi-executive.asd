@@ -12,4 +12,5 @@
   :components
   ((:module "src"
             :components
-            ((:file "package")))))
+            ((:file "package")
+             (:file "main" :depends-on ("package"))))))

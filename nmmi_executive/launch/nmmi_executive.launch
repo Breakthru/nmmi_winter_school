@@ -1,0 +1,3 @@
+<launch>
+  <node pkg="nmmi_executive" type="nmmi_executive" name="nmmi_executive" output="screen"/>
+</launch>

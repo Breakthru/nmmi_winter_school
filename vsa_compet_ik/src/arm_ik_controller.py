@@ -50,6 +50,9 @@ import geometry_msgs
 
 from iai_qb_cube_msgs.msg import CubeCmdArray
 from iai_qb_cube_msgs.msg import CubeCmd
+from iai_qb_cube_msgs.msg import CubeStiff
+from iai_qb_cube_msgs.msg import CubeStiffArray
+
 
 
 
@@ -58,68 +61,13 @@ class arm_ik_controller(object):
         rospy.loginfo("Starting up")
         self.configured = False
         self.ros_transform_topic_name = "/arm_controller/command"
+        self.ros_stiff_topic_name = "/arm_controller/stiff_command"
         self.tf_base_link_name = 'base_link_zero'
         self.tf_end_link_name = 'arm_fixed_finger'        
         
     def __del__(self):
         #Stop all the motors?
         rospy.loginfo("Exiting")
-        
-    def cb_command(self, msg):
-        rospy.loginfo("Got a new command")
-        rospy.loginfo("source_frame: %s  tip_frame: %s", msg.header.frame_id, msg.child_frame_id)
-        
-        
-        debug = False
-        
-        if debug: 
-            pose = kdl.Frame()
-            
-            pose.p = kdl.Vector(msg.transform.translation.x, msg.transform.translation.y, msg.transform.translation.z)
-            pose.M = kdl.Rotation.Quaternion(msg.transform.rotation.x, msg.transform.rotation.y, msg.transform.rotation.z, msg.transform.rotation.w)
-            
-            print "trans: ", pose.p
-            print "quat: ", pose.M.GetQuaternion()
-           
-       
-        if msg.child_frame_id != self.tf_end_link_name:
-            rospy.logerr("Mismatch in end link frames. Got: %s  Wanted: %s", msg.child_frame_id, self.kdl_kin.end_link)        
-            return
-        #FIXME: react to changes in tf_end_link_name and rebuild the chain accordingly
-        
-        #Transform the desired pose to the right reference frame
-        from geometry_msgs.msg import PoseStamped
-        ps = PoseStamped()
-        ps.pose.position = msg.transform.translation
-        ps.pose.orientation = msg.transform.rotation
-        ps.header.frame_id = msg.header.frame_id
-        #Use TF for the transformation  FIXME: Guard this and react to not finding it
-        ps_in_base_link = self.tf_listener.transformPose(self.kdl_kin.base_link, ps)
-        
-        #Do the inverse kinematicss
-        q_sol = self.kdl_kin.inverse(ps_in_base_link, q_guess=None)
-        
-        
-        if q_sol is None:
-            rospy.loginfo("IK did not find a solution")
-            return
-            
-        joint_names = self.kdl_kin.get_joint_names()
-        
-        
-        #Prepare the message for the cube driver        
-        out_msg = CubeCmdArray()
-        
-        for i,joint in enumerate(joint_names):
-            cubecmd = CubeCmd()
-            cubecmd.joint_name = joint
-            cubecmd.equilibrium_point = q_sol[i]
-            cubecmd.stiffness_preset = 0  #FIXME
-            out_msg.commands.append(cubecmd)
-            
-        print out_msg
-        self.cubes_pub.publish(out_msg)
-        
         
         
     def configure(self):
@@ -136,14 +84,21 @@ class arm_ik_controller(object):
         self.kdl_kin = KDLKinematics(self.robot, self.tf_base_link_name, self.tf_end_link_name)    
         
         #Variables holding the joint information
-        self.arm_joint_pos = numpy.array([0, 0, 0])
         self.arm_joint_names = self.kdl_kin.get_joint_names()
         
         rospy.loginfo("The joint names controlled will be:")
         rospy.loginfo("%s"%self.arm_joint_names)
-        
+
+        #Data structure containing the goals for the cubes
+        self.arm_setpoints = dict()
+        for name in self.arm_joint_names:
+            self.arm_setpoints[name] = {'stiff':0.0, 'eq_point':0.0}
+            
         #Start the subscriber
-        rospy.Subscriber(self.ros_transform_topic_name, geometry_msgs.msg.TransformStamped, self.cb_command )
+        rospy.Subscriber(self.ros_transform_topic_name, geometry_msgs.msg.TransformStamped, self.cb_command)
+        
+        #Another subscriber for the stiffness data
+        rospy.Subscriber(self.ros_stiff_topic_name, CubeStiffArray, self.cb_stiff_command)
         
         #Prepare our publisher
         self.cubes_pub = rospy.Publisher("/iai_qb_cube_driver/command", CubeCmdArray)
@@ -166,31 +121,107 @@ class arm_ik_controller(object):
         #return a tuple (pos, quat)
         return tr
         
+    def cb_stiff_command(self, msg):
+        rospy.logdebug("Received new stiffness presets command")
+        
+        for cmd in msg.stiffness_presets:
+            self.arm_setpoints[cmd.joint_name]['stiff'] = cmd.stiffness_preset
+            rospy.loginfo("New stiffness, new goals: %s", self.arm_setpoints)
+            
+        self.send_command_to_cubes()
+            
+    def send_command_to_cubes(self):
+        rospy.loginfo("Sending new command to cubes")
 
-if False:
+        #Prepare the message for the cube driver        
+        out_msg = CubeCmdArray()
     
+        #Fill in the values from the arm_setpoints dict  
+        for i,joint_name in enumerate(self.arm_joint_names):
+            cubecmd = CubeCmd()
+            cubecmd.joint_name = joint_name
+            cubecmd.equilibrium_point = self.arm_setpoints[joint_name]['eq_point']
+            cubecmd.stiffness_preset = self.arm_setpoints[joint_name]['stiff']  
+            out_msg.commands.append(cubecmd)
+    
+        print out_msg
+        self.cubes_pub.publish(out_msg)
 
+
+
+    def cb_command(self, msg):
+        rospy.loginfo("New command. source_frame: %s  tip_frame: %s", msg.header.frame_id, msg.child_frame_id)
+
+
+        debug = False
+
+        if debug: 
+            pose = kdl.Frame()
+
+            pose.p = kdl.Vector(msg.transform.translation.x, msg.transform.translation.y, msg.transform.translation.z)
+            pose.M = kdl.Rotation.Quaternion(msg.transform.rotation.x, msg.transform.rotation.y, msg.transform.rotation.z, msg.transform.rotation.w)
+
+            print "trans: ", pose.p
+            print "quat: ", pose.M.GetQuaternion()
+
+
+        if msg.child_frame_id != self.tf_end_link_name:
+            rospy.logerr("Mismatch in end link frames. Got: %s  Wanted: %s", msg.child_frame_id, self.kdl_kin.end_link)        
+            return
+        
+        #FIXME: react to changes in tf_end_link_name and rebuild the chain accordingly
+
+        #Transform the desired pose to the right reference frame
+        from geometry_msgs.msg import PoseStamped
+        ps = PoseStamped()
+        ps.pose.position = msg.transform.translation
+        ps.pose.orientation = msg.transform.rotation
+        ps.header.frame_id = msg.header.frame_id
+        #Use TF for the transformation  FIXME: Guard this and react to not finding it
+        ps_in_base_link = self.tf_listener.transformPose(self.kdl_kin.base_link, ps)
+
+        #Do the inverse kinematicss
+        q_sol = self.kdl_kin.inverse(ps_in_base_link, q_guess=None)
+
+
+        if q_sol is None:
+            rospy.loginfo("IK did not find a solution")
+            return
+
+
+        #Save the result to the arm_setpoints dict
+        for i,name in enumerate(self.arm_joint_names):
+            self.arm_setpoints[name]['eq_point'] = q_sol[i]
+            
+
+        self.send_command_to_cubes()
+        
+
+
+
+
+
+#if False:
+    #robot = URDF.from_parameter_server()
+    #tree = kdl_tree_from_urdf_model(robot)
+    #print tree.getNrOfSegments()
+    #chain = tree.getChain(base_link_name, end_link_name)
+    #print chain.getNrOfJoints()
     
-    robot = URDF.from_parameter_server()
-    tree = kdl_tree_from_urdf_model(robot)
-    print tree.getNrOfSegments()
-    chain = tree.getChain(base_link_name, end_link_name)
-    print chain.getNrOfJoints()
+    #kdl_kin = KDLKinematics(robot, base_link_name, end_link_name)
+    #q = kdl_kin.random_joint_angles()
+    #pose = kdl_kin.forward(q) # forward kinematics (returns homogeneous 4x4 numpy.mat)
+    #q_ik = kdl_kin.inverse(pose, q + 0.3) # inverse kinematics
+    #if q_ik is not None:
+        #pose_sol = kdl_kin.forward(q_ik) # should equal pose
     
-    kdl_kin = KDLKinematics(robot, base_link_name, end_link_name)
-    q = kdl_kin.random_joint_angles()
-    pose = kdl_kin.forward(q) # forward kinematics (returns homogeneous 4x4 numpy.mat)
-    q_ik = kdl_kin.inverse(pose, q + 0.3) # inverse kinematics
-    if q_ik is not None:
-        pose_sol = kdl_kin.forward(q_ik) # should equal pose
-    
-    J = kdl_kin.jacobian(q)
-    print 'q:', q
-    print 'q_ik:', q_ik
-    print 'pose:', pose
-    if q_ik is not None:
-        print 'pose_sol:', pose_sol
-    print 'J:', J
+    #J = kdl_kin.jacobian(q)
+    #print 'q:', q
+    #print 'q_ik:', q_ik
+    #print 'pose:', pose
+    #if q_ik is not None:
+        #print 'pose_sol:', pose_sol
+    #print 'J:', J
     
 
 
@@ -207,9 +238,9 @@ def main():
     
     
     
-    (pos, quat) = armc.get_tf_pose('base_link_zero', 'right_holder_link')
-    print pos
-    print "quat:", quat
+    #(pos, quat) = armc.get_tf_pose('base_link_zero', 'right_holder_link')
+    #print pos
+    #print "quat:", quat
     
     import time
     while not rospy.is_shutdown():

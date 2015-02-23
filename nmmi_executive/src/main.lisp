@@ -45,16 +45,23 @@
     :stiffness-presets
     (:default (:arm_1_joint 15 :arm_2_joint 15 :arm_3_joint 15)
      :right-pregrasp (:arm_1_joint 0 :arm_2_joint 0 :arm_3_joint 0))
-    :thresholds
-    (:default 0.02)))
+    :gripper (:open (:joint_name "arm_4_joint" 
+                     :equilibrium_point ,(/ PI -4.0) 
+                     :stiffness_preset 20)
+              :close (:joint_name "arm_4_joint" 
+                     :equilibrium_point 0.0 
+                     :stiffness_preset 20))
+    :thresholds (:default-cartesian 0.02
+                 :default-joint 0.05)))
 
 (defun init-nmmi-executive ()
-  (multiple-value-bind (arm-control stiff-control) (init-arm-control)
+  (multiple-value-bind (arm-control stiff-control joint-control) (init-arm-control)
     (multiple-value-bind (tf joint-states-sub joint-states-fluent) (init-proprioception)
       ;; wait for everything to settle down
       (sleep 1)
       `(:arm-control ,arm-control 
         :stiff-control ,stiff-control 
+        :joint-control ,joint-control
         :tf ,tf
         :joint-states-fluent ,joint-states-fluent
         :joint-states-sub ,joint-states-sub))))
@@ -68,10 +75,23 @@
             (setf (cpl-impl:value finished-fluent) t)
             (command-move handle kb target))))))
 
+(defun gripper (handle kb target)
+  (let ((finished-fluent (cpl-impl:make-fluent :value nil)))
+    (cpl:pursue
+      (cpl-impl:wait-for finished-fluent)
+      (cpl-impl:whenever ((cpl:pulsed (getf handle :joint-states-fluent)))
+        (if (gripper-finished-p handle kb target)
+            (setf (cpl-impl:value finished-fluent) t)
+            (command-gripper handle kb target))))))
+    
 (defun run-nmmi-executive (handle kb)
   (move handle kb :middle)
+  (gripper handle kb :open)
   (move handle kb :left-pregrasp)
-  (move handle kb :right-pregrasp))
+  (gripper handle kb :close)
+  (move handle kb :middle)
+  (move handle kb :right-pregrasp)
+  (gripper handle kb :open))
 
 (defun main ()
   (with-ros-node ("nmmi_executive" :spin t)

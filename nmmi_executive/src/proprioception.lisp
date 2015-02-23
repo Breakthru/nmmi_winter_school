@@ -33,7 +33,8 @@
          (joint-states-fluent (cpl-impl:make-fluent))
          (joint-states-sub (subscribe 
                             "joint_states_throttle" "sensor_msgs/JointState"
-                            (lambda (msg) (setf (cpl:value joint-states-fluent) msg)))))
+                            (lambda (msg) 
+                              (setf (cpl:value joint-states-fluent) (from-msg msg))))))
     (values tf joint-states-sub joint-states-fluent)))
 
 (defun guarded-tf2-lookup (tf target-frame source-frame)
@@ -44,7 +45,7 @@
   "Predicate to check whether we have reached `target' using `handle' and `kb'."
   (let ((target-transform (getf-rec kb :targets target))
         (threshold (or (getf-rec kb :thresholds target)
-                       (getf-rec kb :thresholds :default))))
+                       (getf-rec kb :thresholds :default-cartesian))))
   (with-slots (child-frame-id header) target-transform
     (with-slots (frame-id) header
       (let ((current-transform (guarded-tf2-lookup (getf handle :tf) frame-id child-frame-id)))
@@ -52,3 +53,14 @@
            (v-dist
             (translation (cl-tf2:transform target-transform))
             (translation (cl-tf2:transform current-transform)))))))))
+
+(defun gripper-finished-p (handle kb target)
+  (let ((target-state (getf-rec kb :gripper target :equilibrium_point))
+        (threshold (getf-rec kb :thresholds :default-joint))
+        (current-state (getf (cpl-impl:value (getf handle :joint-states-fluent)) :arm_4_joint)))
+    
+    (> threshold 
+       (abs (- target-state current-state)))))
+
+    
+  

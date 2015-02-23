@@ -31,7 +31,8 @@
 (defun init-arm-control ()
   (values
    (advertise "/arm_controller/command" "geometry_msgs/TransformStamped")
-   (advertise "/arm_controller/stiff_command" "iai_qb_cube_msgs/CubeStiffArray")))
+   (advertise "/arm_controller/stiff_command" "iai_qb_cube_msgs/CubeStiffArray")
+   (advertise "/iai_qb_cube_driver/command" "iai_qb_cube_msgs/CubeCmdArray")))
 
 (defun command-move (handle kb target)
   (format t "Moving to ~a~%" target)
@@ -39,3 +40,8 @@
   (publish (getf handle :stiff-control) 
            (to-stiffness-msg (or (getf-rec kb :stiffness-presets target)
                                  (getf-rec kb :stiffness-presets :default)))))
+
+(defun command-gripper (handle kb target)
+  (format t "Commanding gripper to ~a~%" target)
+  (publish (getf handle :joint-control) 
+           (to-joint-cmd-msg (list (getf-rec kb :gripper target)))))

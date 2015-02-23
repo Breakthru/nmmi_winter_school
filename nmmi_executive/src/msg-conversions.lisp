@@ -65,3 +65,19 @@
                             (to-msg-rec remainder))))))
     (make-msg "iai_qb_cube_msgs/CubeStiffArray"
               :stiffness_presets (coerce (to-msg-rec stiffness-presets) 'vector))))
+
+(defun to-joint-cmd-msg (cmds)
+  (let ((msg-list 
+          (mapcar (lambda (cmd)
+                    (apply #'roslisp::make-message-fn "iai_qb_cube_msgs/CubeCmd" cmd))
+                  cmds)))
+  (make-msg "iai_qb_cube_msgs/CubeCmdArray" :commands (coerce msg-list 'vector))))
+
+(defgeneric from-msg (msg))
+
+(defmethod from-msg ((msg sensor_msgs-msg:jointstate))
+  (with-fields (name position) msg
+    (apply #'concatenate 'list
+           (loop for n in (coerce name 'list)
+                 for p in (coerce position 'list)
+                 collect `(,(intern (string-upcase n) :keyword) ,p)))))

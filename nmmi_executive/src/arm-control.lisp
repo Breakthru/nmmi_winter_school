@@ -77,9 +77,10 @@
         (getf place (first indicators))
         (apply #'getf-rec (getf place (first indicators)) (rest indicators)))))
 
-(defun move (handle kb target)
+(defun command-move (handle kb target)
   (format t "Moving to ~a~%" target)
   (publish (getf handle :arm-control) (to-msg (getf-rec kb :targets target)))
   (publish (getf handle :stiff-control) 
-           (to-stiffness-msg (getf-rec kb :stiffness-presets :default))))
+           (to-stiffness-msg (or (getf-rec kb :stiffness-presets target)
+                                 (getf-rec kb :stiffness-presets :default)))))
 

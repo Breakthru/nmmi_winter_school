@@ -43,7 +43,10 @@
                (make-transform (make-3d-vector 0.244 0.0 0.0)
                                (make-quaternion 1.0 0.0 0.0 0.0))))
     :stiffness-presets
-    (:default (:arm_1_joint 15 :arm_2_joint 15 :arm_3_joint 15 :arm_4_joint 15))))
+    (:default (:arm_1_joint 15 :arm_2_joint 15 :arm_3_joint 15)
+     :right-pregrasp (:arm_1_joint 0 :arm_2_joint 0 :arm_3_joint 0))
+    :thresholds
+    (:default 0.02)))
 
 (defun init-nmmi-executive ()
   (multiple-value-bind (arm-control stiff-control) (init-arm-control)
@@ -56,14 +59,23 @@
         :joint-states-fluent ,joint-states-fluent
         :joint-states-sub ,joint-states-sub))))
 
+(defun move (handle kb target)
+  (let ((finished-fluent (cpl-impl:make-fluent :value nil)))
+    (cpl:pursue
+      (cpl-impl:wait-for finished-fluent)
+      (cpl-impl:whenever ((cpl:pulsed (getf handle :joint-states-fluent)))
+        (if (move-finished-p handle kb target)
+            (setf (cpl-impl:value finished-fluent) t)
+            (command-move handle kb target))))))
+
 (defun run-nmmi-executive (handle kb)
   (move handle kb :middle)
-  (sleep 2)
   (move handle kb :left-pregrasp)
-  (sleep 2)
   (move handle kb :right-pregrasp))
 
 (defun main ()
   (with-ros-node ("nmmi_executive" :spin t)
-    (loop do
-      (run-nmmi-executive (init-nmmi-executive) (knowledge-base)))))
+    (let ((handle (init-nmmi-executive))
+          (kb (knowledge-base)))
+      (cpl-impl:top-level
+        (loop do (run-nmmi-executive handle kb))))))

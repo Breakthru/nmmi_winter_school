@@ -36,25 +36,19 @@
                             (lambda (msg) (setf (cpl:value joint-states-fluent) msg)))))
     (values tf joint-states-sub joint-states-fluent)))
 
-;;;
-;;; COMPUTE THE DISTANCE BETWEEN EE AND GOALS TO DISCRETIZE SPACE:
-;;; - TF holds frames for the goals, TF has EE
-;;;
+(defun guarded-tf2-lookup (tf target-frame source-frame)
+  (handler-case (cl-tf2:lookup-transform tf target-frame source-frame 0.0 0.1)
+    (cl-tf2::tf2-server-error () (guarded-tf2-lookup tf target-frame source-frame))))
 
-;; (defun guarded-tf2-lookup (tf target-frame source-frame)
-;;   (handler-case (cl-tf2:lookup-transform tf target-frame source-frame 0.0 0.1)
-;;     (cl-tf2::tf2-server-error () (guarded-tf2-lookup tf target-frame source-frame))))
-
-;; (defun transform-distance (stamped-transform)
-;;   (cl-transforms:v-norm (translation (cl-tf2:transform stamped-transform))))
-
-;; (defun discrete-localization (handle)
-;;   (labels ((lookup-places-rec (places tf)
-;;              (when places
-;;                (destructuring-bind (key frame &rest remainder) places
-;;                  (concatenate 'list
-;;                               `(,key ,(transform-distance (guarded-tf2-lookup tf "arm_fixed_finger" frame)))
-;;                               (lookup-places-rec remainder tf))))))
-;;     (lookup-places-rec 
-;;      `(:left-target "left_holder_link" :right-target "right_holder_link")
-;;      (getf handle :tf))))
+(defun move-finished-p (handle kb target)
+  "Predicate to check whether we have reached `target' using `handle' and `kb'."
+  (let ((target-transform (getf-rec kb :targets target))
+        (threshold (or (getf-rec kb :thresholds target)
+                       (getf-rec kb :thresholds :default))))
+  (with-slots (child-frame-id header) target-transform
+    (with-slots (frame-id) header
+      (let ((current-transform (guarded-tf2-lookup (getf handle :tf) frame-id child-frame-id)))
+        (> threshold
+           (v-dist
+            (translation (cl-tf2:transform target-transform))
+            (translation (cl-tf2:transform current-transform)))))))))

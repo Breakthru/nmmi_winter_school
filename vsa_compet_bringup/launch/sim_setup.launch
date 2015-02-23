@@ -5,7 +5,7 @@
   <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher" />
 
   <!-- Bring together the different joint state messages -->
-  <node pkg="joint_state_publisher" type="joint_state_publisher"
+  <!--node pkg="joint_state_publisher" type="joint_state_publisher"
         name="joint_state_publisher" output="screen">
     <rosparam param="source_list">
       - iai_qb_cube_driver/joint_state
@@ -18,7 +18,7 @@
     </rosparam>
     <param name="rate" value="50"/>
     <param name="use_gui" value="False"/>
-  </node>
+  </node-->
 
   <include file="$(find iai_qb_cube_driver)/launch/nmmi_challenge.launch"/>
 

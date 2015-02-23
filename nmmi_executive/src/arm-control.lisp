@@ -71,8 +71,15 @@
    (advertise "/arm_controller/command" "geometry_msgs/TransformStamped")
    (advertise "/arm_controller/stiff_command" "iai_qb_cube_msgs/CubeStiffArray")))
 
-(defun move-arm-absolute (arm-control stiff-control goal)
-  (let ((transform (getf goal :goal-transform))
-        (stiffness-presets (getf goal :stiffness-presets)))
-    (publish arm-control (to-msg transform))
-    (publish stiff-control (to-stiffness-msg stiffness-presets))))
+(defun getf-rec (place &rest indicators)
+  (when indicators
+    (if (= 1 (length indicators))
+        (getf place (first indicators))
+        (apply #'getf-rec (getf place (first indicators)) (rest indicators)))))
+
+(defun move (handle kb target)
+  (format t "Moving to ~a~%" target)
+  (publish (getf handle :arm-control) (to-msg (getf-rec kb :targets target)))
+  (publish (getf handle :stiff-control) 
+           (to-stiffness-msg (getf-rec kb :stiffness-presets :default))))
+

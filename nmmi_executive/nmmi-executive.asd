@@ -10,6 +10,7 @@
                :cl-transforms
                :cl-tf2
                :cram-language
+               :sensor_msgs-msg
                :geometry_msgs-msg
                :iai_qb_cube_msgs-msg)
   :components
@@ -17,4 +18,5 @@
             :components
             ((:file "package")
              (:file "arm-control" :depends-on ("package"))
-             (:file "main" :depends-on ("package" "arm-control"))))))
+             (:file "proprioception" :depends-on ("package"))
+             (:file "main" :depends-on ("package" "arm-control" "proprioception"))))))

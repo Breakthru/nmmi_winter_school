@@ -28,42 +28,33 @@
 
 (in-package :nmmi-executive)
 
-(defun knowledge-base ()
-  `(:targets
-    (:left-pregrasp ,(make-stamped-transform 
-                      "left_holder_link" "arm_fixed_finger" 0.0
-                      (make-transform (make-3d-vector 0.0 -0.05 0.0)
-                                      (make-identity-rotation)))
-     :right-pregrasp ,(make-stamped-transform 
-                       "right_holder_link" "arm_fixed_finger" 0.0
-                       (make-transform (make-3d-vector 0.0 0.05 0.0)
-                                       (make-identity-rotation)))
-     :middle ,(make-stamped-transform 
-               "base_link_zero" "arm_fixed_finger" 0.0
-               (make-transform (make-3d-vector 0.244 0.0 0.0)
-                               (make-quaternion 1.0 0.0 0.0 0.0))))
-    :stiffness-presets
-    (:default (:arm_1_joint 15 :arm_2_joint 15 :arm_3_joint 15 :arm_4_joint 15))))
+(defun init-proprioception ()
+  (let* ((tf (make-instance 'cl-tf2:buffer-client))
+         (joint-states-fluent (cpl-impl:make-fluent))
+         (joint-states-sub (subscribe 
+                            "joint_states_throttle" "sensor_msgs/JointState"
+                            (lambda (msg) (setf (cpl:value joint-states-fluent) msg)))))
+    (values tf joint-states-sub joint-states-fluent)))
 
-(defun init-nmmi-executive ()
-  (multiple-value-bind (arm-control stiff-control) (init-arm-control)
-    (multiple-value-bind (tf joint-states-sub joint-states-fluent) (init-proprioception)
-      ;; wait for everything to settle down
-      (sleep 1)
-      `(:arm-control ,arm-control 
-        :stiff-control ,stiff-control 
-        :tf ,tf
-        :joint-states-fluent ,joint-states-fluent
-        :joint-states-sub ,joint-states-sub))))
+;;;
+;;; COMPUTE THE DISTANCE BETWEEN EE AND GOALS TO DISCRETIZE SPACE:
+;;; - TF holds frames for the goals, TF has EE
+;;;
 
-(defun run-nmmi-executive (handle kb)
-  (move handle kb :middle)
-  (sleep 2)
-  (move handle kb :left-pregrasp)
-  (sleep 2)
-  (move handle kb :right-pregrasp))
+;; (defun guarded-tf2-lookup (tf target-frame source-frame)
+;;   (handler-case (cl-tf2:lookup-transform tf target-frame source-frame 0.0 0.1)
+;;     (cl-tf2::tf2-server-error () (guarded-tf2-lookup tf target-frame source-frame))))
 
-(defun main ()
-  (with-ros-node ("nmmi_executive" :spin t)
-    (loop do
-      (run-nmmi-executive (init-nmmi-executive) (knowledge-base)))))
+;; (defun transform-distance (stamped-transform)
+;;   (cl-transforms:v-norm (translation (cl-tf2:transform stamped-transform))))
+
+;; (defun discrete-localization (handle)
+;;   (labels ((lookup-places-rec (places tf)
+;;              (when places
+;;                (destructuring-bind (key frame &rest remainder) places
+;;                  (concatenate 'list
+;;                               `(,key ,(transform-distance (guarded-tf2-lookup tf "arm_fixed_finger" frame)))
+;;                               (lookup-places-rec remainder tf))))))
+;;     (lookup-places-rec 
+;;      `(:left-target "left_holder_link" :right-target "right_holder_link")
+;;      (getf handle :tf))))

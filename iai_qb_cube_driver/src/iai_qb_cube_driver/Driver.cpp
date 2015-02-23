@@ -182,7 +182,7 @@ void Driver::cmd_sub_cb_(const iai_qb_cube_msgs::CubeCmdArray::ConstPtr& msg)
       ROS_WARN("Asked to command unknown joint %s", msg->commands[i].joint_name.c_str());
   }
 
-  ROS_WARN("New setpoints.");
+  ROS_DEBUG("New setpoints.");
 
   writeCommandBuffer(desired_command);
 }

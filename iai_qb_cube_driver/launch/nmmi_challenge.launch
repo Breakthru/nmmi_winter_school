@@ -1,5 +1,5 @@
 <launch>
-  <arg name="sim_mode" default="true"/>
+  <arg name="sim_mode" default="false"/>
 
   <include file="$(find iai_qb_cube_driver)/launch/iai_qb_cube_driver.launch">
     <arg name="sim_mode" value="$(arg sim_mode)"/>

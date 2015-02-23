@@ -289,7 +289,7 @@ class Arm_ik_controller(object):
         self.arm_setpoints = dict()
         self.arm_jointdata = dict()
         for name in self.arm_joint_names:
-            self.arm_setpoints[name] = {'stiff':0.0, 'eq_point':0.0}
+            self.arm_setpoints[name] = {'stiff':30.0, 'eq_point':0.0}
             self.arm_jointdata[name] = {'pos':0.0}
             
             
@@ -309,7 +309,7 @@ class Arm_ik_controller(object):
         self.cubes_pub = rospy.Publisher("/iai_qb_cube_driver/command", CubeCmdArray, queue_size=3)
         
         #Set up a timer for the function talking to the cubes
-        rospy.Timer(rospy.Duration(0.01), self.cb_cube_controller)
+        rospy.Timer(rospy.Duration(0.05), self.cb_cube_controller)
         
         
         return True
@@ -348,7 +348,7 @@ class Arm_ik_controller(object):
             cubecmd = CubeCmd()
             cubecmd.joint_name = joint_name
             cubecmd.equilibrium_point = self.arm_setpoints[joint_name]['eq_point']
-            cubecmd.stiffness_preset = self.arm_setpoints[joint_name]['stiff']  
+            cubecmd.stiffness_preset = 35 #self.arm_setpoints[joint_name]['stiff']  
             out_msg.commands.append(cubecmd)
         self.cubes_pub.publish(out_msg)
 
@@ -380,7 +380,7 @@ class Arm_ik_controller(object):
         
 
         #Save the new desired cartesian pose
-        self.cart_goal = poseStamped_to_kdlFrame(ps)
+        self.cart_goal = poseStamped_to_kdlFrame(ps)  #this one saves [frame_id, kdl_frame]
         self.fresh_cart_goal = True
         
         
@@ -395,6 +395,12 @@ class Arm_ik_controller(object):
         [frame_id, kdl_frame] = self.cart_goal
         #print self.get_current_joint_pos()
         #return
+    
+        #Here convert the cartesian goal to our base_link_zero before continuing
+        ps_0 = kdlFrame_to_poseStamped(kdl_frame, frame_id)
+        #print ps_0
+        ps = self.tf_listener.transformPose('base_link_zero', ps_0)
+        #print ps
     
         current_homo_mat = self.kdl_kin.forward(self.get_current_joint_pos())
         (pos, quat) = PoseConv.to_pos_quat(current_homo_mat)

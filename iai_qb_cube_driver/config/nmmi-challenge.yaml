@@ -13,4 +13,4 @@ iai_qb_cube_driver:
   arm_4_joint:
     id: 4
   publish_frequency: 50.0
-  port: /dev/ttyUSB0
+  port: /dev/ttyUSB1

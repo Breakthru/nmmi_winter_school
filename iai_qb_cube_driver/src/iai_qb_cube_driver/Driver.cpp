@@ -80,9 +80,9 @@ bool Driver::start_rt_thread(double timeout){
   struct sched_param sparam;
   sparam.sched_priority = 12;
   pthread_attr_init(&tattr);
-  pthread_attr_setschedpolicy(&tattr, SCHED_FIFO);
-  pthread_attr_setschedparam(&tattr, &sparam);
-  pthread_attr_setinheritsched (&tattr, PTHREAD_EXPLICIT_SCHED);
+  //pthread_attr_setschedpolicy(&tattr, SCHED_FIFO);
+  //pthread_attr_setschedparam(&tattr, &sparam);
+  //pthread_attr_setinheritsched (&tattr, PTHREAD_EXPLICIT_SCHED);
 
   if(pthread_create(&thread_, &tattr, &Driver::run_s, (void *) this) != 0)
   {
@@ -104,6 +104,7 @@ void* Driver::rt_run()
     writeCommand();
     if (simulationMode())
     	usleep(1000);
+    usleep(1000);
   }
 
   ROS_INFO("exiting rt thread");
@@ -297,7 +298,11 @@ void Driver::readMeasurement()
     { 
       short int cube_id = it->second;
       short int measurements[3];
-      commGetMeasurements(&cube_comm_, cube_id, measurements);
+      if (commGetMeasurements(&cube_comm_, cube_id, measurements) == -1){
+          ROS_ERROR("Error during reading of measurements");
+          i++;
+          continue;
+      }
       // all measurements in radians
       // TODO: 1, too, many...
       measurement_tmp_[i].motor1_position_ = 
@@ -309,6 +314,7 @@ void Driver::readMeasurement()
   
       i++;
     }
+
   }
 }
 

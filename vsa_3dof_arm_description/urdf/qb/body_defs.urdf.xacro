@@ -2,7 +2,7 @@
 <robot xmlns:xacro="http://ros.org/wiki/xacro">
 
 <!-- constants -->
-
+	<!--FIXME: Add different joint limits for each cube -->
 	<xacro:property name="damping_all" value="1" />
 	<xacro:property name="pi" value="3.1415926535897931" />
 	<xacro:property name="low_b" value="-140" />
@@ -31,9 +31,9 @@
 
 
 	
-<!-- Definiton of the QB cube -->
+<!-- Definition of the QB cube -->
 
-	<xacro:macro name="cube" params="parent name position orientation" >
+	<xacro:macro name="cube" params="parent name position orientation low_limit high_limit" >
 
 		<joint name="${name}_dummy_joint" type="fixed" >
 			<origin xyz="${position}" rpy="${orientation}" />
@@ -62,7 +62,7 @@
 			<child link="${name}_link" />
 			<axis xyz="0 0 1" />
 			<dynamics damping="${damping_all}" />
-			<limit lower="${low_b * pi / 180}" upper="${up_b * pi / 180}" effort="${effort}" velocity="${velocity}"/>
+			<limit lower="${low_limit * pi / 180}" upper="${high_limit * pi / 180}" effort="${effort}" velocity="${velocity}"/>
 		</joint>
 
 		<link name="${name}_link">
@@ -85,16 +85,16 @@
 		<link name="${name}_dummy_link"/>
 
 		<xacro:cube parent="${name}_dummy_link" name="${name}_1" 
-                  position="0 0 0" orientation="0 0 0" />
+                  position="0 0 0" orientation="0 0 0" low_limit="-90" high_limit="90" />
 
 		<xacro:cube parent="${name}_1_link" name="${name}_2" 
-                  position="${c_flange/scale_f} 0 0" orientation="0 0 0" />
+                  position="${c_flange/scale_f} 0 0" orientation="0 0 0" low_limit="-115" high_limit="115" />
 
 		<xacro:cube parent="${name}_2_link" name="${name}_3" 
-                  position="${c_flange/scale_f} 0 0" orientation="0 0 0" />
+                  position="${c_flange/scale_f} 0 0" orientation="0 0 0"  low_limit="-160" high_limit="160"/>
 
 		<xacro:cube parent="${name}_3_link" name="${name}_4" 
-                  position="0 0 ${one_flange/scale_f} " orientation="${pi / 2} 0 0" />
+                  position="0 0 ${one_flange/scale_f} " orientation="${pi / 2} 0 0"  low_limit="-90" high_limit="90"/>
 
                 <link name="${name}_fixed_finger"/>
                 <joint name="${name}_fixed_finger_joint" type="fixed" >

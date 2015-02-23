@@ -98,7 +98,7 @@ class arm_ik_controller(object):
             self.arm_jointdata[name] = {'pos':0.0}
             
         #Start the subscriber
-        rospy.Subscriber(self.ros_transform_topic_name, geometry_msgs.msg.TransformStamped, self.cb_command)
+        rospy.Subscriber(self.ros_transform_topic_name, geometry_msgs.msg.TransformStamped, self.cb_command, queue_size=1)
         
         #Another subscriber for the stiffness data
         rospy.Subscriber(self.ros_stiff_topic_name, CubeStiffArray, self.cb_stiff_command)
@@ -107,7 +107,7 @@ class arm_ik_controller(object):
         rospy.Subscriber("/iai_qb_cube_driver/joint_state", JointState, self.cb_joint_states )
         
         #Prepare our publisher
-        self.cubes_pub = rospy.Publisher("/iai_qb_cube_driver/command", CubeCmdArray)
+        self.cubes_pub = rospy.Publisher("/iai_qb_cube_driver/command", CubeCmdArray, queue_size=3)
         
         
         
@@ -203,7 +203,7 @@ class arm_ik_controller(object):
         if q_sol is None:
             rospy.loginfo("Looking for IK from a random start position:w"
                           "")
-            q_sol = self.kdl_kin.inverse_search(ps_in_base_link, 0.5)
+            q_sol = self.kdl_kin.inverse_search(ps_in_base_link, 0.1)
 
 
         if q_sol is None:

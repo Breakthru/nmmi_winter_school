@@ -29,13 +29,6 @@ def change_ps_name(name):
     except:
         pass
 
-def kdlpose_to_matrix(pose):
-    p = pose.p
-    M = pose.M
-    return numpy.mat([[M[0,0], M[0,1], M[0,2], p.x()], 
-                   [M[1,0], M[1,1], M[1,2], p.y()], 
-                   [M[2,0], M[2,1], M[2,2], p.z()],
-                   [     0,      0,      0,     1]])
 
 
 import rospy
@@ -98,7 +91,12 @@ def kdlFrame_to_poseStamped(frame, frame_id='base_link_zero'):
     ps.pose.position.y = frame.p.y()
     ps.pose.position.z = frame.p.z()
     
+    
     quat = frame.M.GetQuaternion()
+    
+    if quat[0] != quat[0]:
+        rospy.logwarn("ARGHH")
+        print frame.M
     ps.pose.orientation.x = quat[0]
     ps.pose.orientation.y = quat[1]
     ps.pose.orientation.z = quat[2]
@@ -116,27 +114,40 @@ class MiniInterpolator(object):
         self.current_pose = kdl.Frame()
         self.trajectory = None
         self.start_time = rospy.Time.now()
+        self.last_dst_pose = kdl.Frame()
         
         
     def set_current_pose(self, frame):
-        self.current_pose = frame
+        self.current_pose = kdl.Frame(frame)
         
     def new_goal(self, frame):
-        self.dst_pose = frame
+        self.dst_pose = kdl.Frame(frame)
         
-    def replan_movement(self):
+    def replan_movement(self, interp_time=2):
 
         #find distance
-        dist = kdl.diff(self.current_pose, self.dst_pose)
+        rot_dist = kdl.diff(self.current_pose.M, self.dst_pose.M)
         
-        #make 10 points
+        if rot_dist[0] != rot_dist[0]:
+            #getting nans here, work around bug by rotating current pose a little
+            self.current_pose.M.DoRotZ(2*3.141509/180.0)
+            
+        dist = kdl.diff(kdl.Frame(self.current_pose), kdl.Frame(self.dst_pose))
+                
         
         dt = 0.1
+        total_time = interp_time #sec  FIXME: Get as parameter
+        times = int(total_time / dt )
+        dx = 1.0 / times
         self.start_time = rospy.Time.now()  
         self.pose_vector = []
-        for i in range(10 + 1):
-            inter_pose = kdl.addDelta(self.current_pose, dist, dt * i)
+        for i in range(times + 1):
+            inter_pose = kdl.addDelta(kdl.Frame(self.current_pose), dist, dx * i)
             inter_time = self.start_time + rospy.Duration(dt) * i
+            #rospy.logwarn("Generated pose:")
+            #print inter_pose
+            #rospy.logwarn("Original pose:")
+            #print self.current_pose
             self.pose_vector.append([inter_time, inter_pose])
         
         
@@ -145,10 +156,16 @@ class MiniInterpolator(object):
         for time, pose in self.pose_vector:
             if time > rospy.Time.now():
                 #Found the current setpoint
+                #message = "time " + str(time)
+                #rospy.logwarn(message)
+                self.last_dst_pose = kdl.Frame(pose)   #save as last pose
+                #print "Found frame:"
+                #print pose
                 return(pose)
     
         #If we get here, found no unreached setpoint, so just return the last goal frame
-        return(self.dst_pose)
+        #rospy.loginfo("returning dst pose")
+        return(self.last_dst_pose)
     
     
 
@@ -399,9 +416,16 @@ class Arm_ik_controller(object):
         #Here convert the cartesian goal to our base_link_zero before continuing
         ps_0 = kdlFrame_to_poseStamped(kdl_frame, frame_id)
         #print ps_0
+        #print("Before converting:")
+        #print ps_0
+        
         ps = self.tf_listener.transformPose('base_link_zero', ps_0)
+        #print("After converting:")
         #print ps
+        
+        (goal_kdl_frame_id, goal_kdl_frame) = poseStamped_to_kdlFrame(ps)
     
+        #Find the current kdl frame from joint angles
         current_homo_mat = self.kdl_kin.forward(self.get_current_joint_pos())
         (pos, quat) = PoseConv.to_pos_quat(current_homo_mat)
         current_kdl_frame = kdl.Frame()
@@ -409,30 +433,23 @@ class Arm_ik_controller(object):
         current_kdl_frame.M = kdl.Rotation.Quaternion(quat[0], quat[1], quat[2], quat[3])
         
         
+        #If new cartesian goal came, reconfigure the interpolator
         if self.fresh_cart_goal:
-            self.interpolator.new_goal(kdl_frame)
+            self.fresh_cart_goal = False
+            rospy.logwarn("Fresh cart goal")
+            self.interpolator.new_goal(goal_kdl_frame)
             self.interpolator.set_current_pose(current_kdl_frame)
             self.interpolator.replan_movement()
             
+        #Get the goal frame for this cycle from the interpolator
         kdl_frame = self.interpolator.query_plan()
+        ps_in_base_link = kdlFrame_to_poseStamped(kdl_frame, 'base_link_zero')
         
-        
-        [frame_id, kdl_frame_final_goal] = self.cart_goal
-        
-        ps = kdlFrame_to_poseStamped(kdl_frame, frame_id)
-        
-        #Use TF for the transformation
-        try:
-            ps_in_base_link = self.tf_listener.transformPose(self.kdl_kin.base_link, ps)
-        except:
-            print ps
-            rospy.logerr("Could not transform the goal pose.")
-            return
-    
         #Do the inverse kinematics
         rospy.logdebug("Current joint pos: %s", self.get_current_joint_pos())
         q_sol = self.kdl_kin.inverse(ps_in_base_link, q_guess=self.get_current_joint_pos())
     
+
         if q_sol is None:
             rospy.loginfo("Looking for IK from a random start position")
             q_sol = self.kdl_kin.inverse_search(ps_in_base_link, 0.1)
@@ -484,8 +501,9 @@ def main():
     
     
     import time
+    r = rospy.Rate(100)
     while not rospy.is_shutdown():
-        time.sleep(0.05)
+        r.sleep()
     
     
 

@@ -2,7 +2,7 @@
 #
 # Node to control the VSA_3DOF_arm given a TransformStamped from the executive
 #
-# Copyright (c) 2009-2015 Alexis Maldonado Herrera <amaldo at cs.uni-bremen.de>
+# Copyright (c) 2015 Alexis Maldonado Herrera <amaldo at cs.uni-bremen.de>
 # Universitaet Bremen, Institute for Artificial Intelligence (AGKI).
 #
 # This program is free software: you can redistribute it and/or modify
@@ -97,6 +97,10 @@ class arm_ik_controller(object):
             self.arm_setpoints[name] = {'stiff':0.0, 'eq_point':0.0}
             self.arm_jointdata[name] = {'pos':0.0}
             
+            
+        self.cart_goal = None
+        self.fresh_cart_goal = False
+        
         #Start the subscriber
         rospy.Subscriber(self.ros_transform_topic_name, geometry_msgs.msg.TransformStamped, self.cb_command, queue_size=1)
         
@@ -182,40 +186,54 @@ class arm_ik_controller(object):
         
         #FIXME: react to changes in tf_end_link_name and rebuild the chain accordingly
 
+
         #Transform the desired pose to the right reference frame
         from geometry_msgs.msg import PoseStamped
         ps = PoseStamped()
         ps.pose.position = msg.transform.translation
         ps.pose.orientation = msg.transform.rotation
         ps.header.frame_id = msg.header.frame_id
+
+        #Save the new desired cartesian pose
+        self.cart_goal = ps
+        self.fresh_cart_goal = True
+        
+        self.cb_cube_controller()
+        
+
+    def cb_cube_controller(self):
+        
+        ps = self.cart_goal
+        
         #Use TF for the transformation
         try:
             ps_in_base_link = self.tf_listener.transformPose(self.kdl_kin.base_link, ps)
         except:
             rospy.logerr("Could not transform the goal pose.")
             return
-        
-
+    
+    
         #Do the inverse kinematics
         rospy.loginfo("Current joint pos: %s", self.get_current_joint_pos())
         q_sol = self.kdl_kin.inverse(ps_in_base_link, q_guess=self.get_current_joint_pos())
-        
+    
         if q_sol is None:
-            rospy.loginfo("Looking for IK from a random start position:w"
-                          "")
+            rospy.loginfo("Looking for IK from a random start position")
             q_sol = self.kdl_kin.inverse_search(ps_in_base_link, 0.1)
-
-
+    
+    
         if q_sol is None:
             rospy.loginfo("IK did not find a solution")
             return
-
-
+    
+    
         #Save the result to the arm_setpoints dict
         for i,name in enumerate(self.arm_joint_names):
             self.arm_setpoints[name]['eq_point'] = q_sol[i]
-
+    
         self.send_command_to_cubes()
+
+
         
 
     def cb_joint_states(self, msg):

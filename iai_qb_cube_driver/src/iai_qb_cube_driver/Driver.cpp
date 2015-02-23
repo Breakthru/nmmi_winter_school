@@ -299,7 +299,7 @@ void Driver::readMeasurement()
       short int cube_id = it->second;
       short int measurements[3];
       if (commGetMeasurements(&cube_comm_, cube_id, measurements) == -1){
-          ROS_ERROR("Error during reading of measurements");
+          ROS_ERROR("Error during reading of cube measurement");
           i++;
           continue;
       }

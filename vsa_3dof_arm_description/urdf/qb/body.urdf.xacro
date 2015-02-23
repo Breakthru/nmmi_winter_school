@@ -13,18 +13,18 @@
 
   <link name="base_link">
     <visual>
-      <origin xyz="0 0 0.25" rpy="0 0 0"/>
+      <origin xyz="0 0 0.2" rpy="0 0 0"/>
       <geometry>
-        <box size="0.088 0.088 0.5"/>
+        <box size="0.060 0.060 0.4"/>
       </geometry>
       <material name="Gray">
       	<color rgba = "0.4 0.4 0.4 1" />
       </material>
     </visual>
 	<collision>
-      		<origin xyz="0 0 0.25" rpy="0 0 0"/>
+      		<origin xyz="0 0 0.2" rpy="0 0 0"/>
       		<geometry>
-        	<box size="0.088 0.088 0.5"/>
+        	<box size="0.06 0.06 0.4"/>
      		 </geometry>
     	</collision>
   </link>
@@ -32,18 +32,18 @@
 
   <link name="horizontal_bar_link">
     <visual>
-      <origin xyz="0 0 0.022" rpy="0 0 0"/>
+      <origin xyz="0 0 0.015" rpy="0 0 0"/>
       <geometry>
-        <box size="0.088 0.5 0.044"/>
+        <box size="0.06 0.5 0.03"/>
       </geometry>
       <material name="Gray">
       	<color rgba = "0.4 0.4 0.4 1" />
       </material>
     </visual>
 	<collision>
-      		<origin xyz="0 0 0.022" rpy="0 0 0"/>
+      		<origin xyz="0 0 0.015" rpy="0 0 0"/>
       		<geometry>
-        	<box size="0.088 0.5 0.044"/>
+        	<box size="0.06 0.5 0.03"/>
      		 </geometry>
     	</collision>
   </link>
@@ -75,7 +75,7 @@
   </link>
 
   <joint name="left_holder_joint" type="fixed" >
-      <origin xyz="${0.044 + 0.030} -0.16 ${holder_height}" rpy="${pi} 0 ${-pi/2}"/>
+      <origin xyz="${0.03 + 0.030} -0.16 ${holder_height}" rpy="${pi} 0 ${-pi/2}"/>
       <parent link="base_link" />
       <child link="left_holder_link" />
   </joint>
@@ -101,7 +101,7 @@
   </link>
 
   <joint name="right_holder_joint" type="fixed" >
-      <origin xyz="${0.044 + 0.030} 0.16 ${holder_height}" rpy="${pi} 0 ${pi/2}"/>
+      <origin xyz="${0.03 + 0.030} 0.16 ${holder_height}" rpy="${pi} 0 ${pi/2}"/>
       <parent link="base_link" />
       <child link="right_holder_link" />
   </joint>

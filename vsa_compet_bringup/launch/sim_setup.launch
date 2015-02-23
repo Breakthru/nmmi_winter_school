@@ -29,6 +29,6 @@
   <node pkg="tf2_ros" type="buffer_server" name="t2_buffer_server"/>
 
   <node pkg="topic_tools" type="throttle" name="joint_state_throttle"
-        args="messages joint_states 5"/>
+        args="messages joint_states 1"/>
 
 </launch>

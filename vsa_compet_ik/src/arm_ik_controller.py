@@ -152,7 +152,9 @@ class MiniInterpolator(object):
         
         
     def query_plan(self):
-        
+        #to disable the interpolator
+        return(self.dst_pose)
+    
         for time, pose in self.pose_vector:
             if time > rospy.Time.now():
                 #Found the current setpoint
@@ -306,7 +308,7 @@ class Arm_ik_controller(object):
         self.arm_setpoints = dict()
         self.arm_jointdata = dict()
         for name in self.arm_joint_names:
-            self.arm_setpoints[name] = {'stiff':30.0, 'eq_point':0.0}
+            self.arm_setpoints[name] = {'stiff':15.0, 'eq_point':0.0}
             self.arm_jointdata[name] = {'pos':0.0}
             
             
@@ -323,7 +325,8 @@ class Arm_ik_controller(object):
         rospy.Subscriber("/iai_qb_cube_driver/joint_state", JointState, self.cb_joint_states )
         
         #Prepare our publisher
-        self.cubes_pub = rospy.Publisher("/iai_qb_cube_driver/command", CubeCmdArray, queue_size=3)
+        #self.cubes_pub = rospy.Publisher("/iai_qb_cube_driver/command", CubeCmdArray, queue_size=3)
+        self.cubes_pub = rospy.Publisher("/arm_interpolator/command", CubeCmdArray, queue_size=3)
         
         #Set up a timer for the function talking to the cubes
         rospy.Timer(rospy.Duration(0.05), self.cb_cube_controller)

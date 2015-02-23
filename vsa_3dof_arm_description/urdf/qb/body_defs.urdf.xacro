@@ -91,7 +91,7 @@
                   position="${c_flange/scale_f} 0 0" orientation="0 0 0" low_limit="-115" high_limit="115" />
 
 		<xacro:cube parent="${name}_2_link" name="${name}_3" 
-                  position="${c_flange/scale_f} 0 0" orientation="0 0 0"  low_limit="-160" high_limit="160"/>
+                  position="${c_flange/scale_f} 0 0" orientation="0 0 0"  low_limit="-170" high_limit="170"/>
 
 		<xacro:cube parent="${name}_3_link" name="${name}_4" 
                   position="0 0 ${one_flange/scale_f} " orientation="${pi / 2} 0 0"  low_limit="-90" high_limit="90"/>

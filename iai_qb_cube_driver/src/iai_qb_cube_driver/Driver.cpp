@@ -22,7 +22,8 @@ MotorCommand InternalCommand::toMotorCommand() const
 {
   // Convert radians to degree. The minus sign is necessary to make 
   // an outgoing revolute axis.
-  double position = - equilibrium_point_ * (180.0 / M_PI);
+  double position = -1.0 *- equilibrium_point_ * (180.0 / M_PI);
+
 
   // Convert degrees to ticks.
   short int pos = position * DEG_TICK_MULTIPLIER;
@@ -300,11 +301,11 @@ void Driver::readMeasurement()
       // all measurements in radians
       // TODO: 1, too, many...
       measurement_tmp_[i].motor1_position_ = 
-          - (measurements[0]/DEG_TICK_MULTIPLIER)*(M_PI/180);
+       -1.0 *  - (measurements[0]/DEG_TICK_MULTIPLIER)*(M_PI/180);
       measurement_tmp_[i].motor2_position_ = 
-          - (measurements[1]/DEG_TICK_MULTIPLIER)*(M_PI/180);
+       -1.0 *  - (measurements[1]/DEG_TICK_MULTIPLIER)*(M_PI/180);
       measurement_tmp_[i].joint_position_ = 
-          - (measurements[2]/DEG_TICK_MULTIPLIER)*(M_PI/180);
+       -1.0 *  - (measurements[2]/DEG_TICK_MULTIPLIER)*(M_PI/180);
   
       i++;
     }
@@ -335,9 +336,9 @@ void Driver::commandSingleCube(const InternalCommand& command)
     measurement_tmp_[index].cube_id_ = command.cube_id_;
     measurement_tmp_[index].joint_position_ = command.equilibrium_point_;
     measurement_tmp_[index].motor1_position_ = 
-        - (motor_cmd.motor1_position_/DEG_TICK_MULTIPLIER)*(M_PI/180);
+     -1.0 * - (motor_cmd.motor1_position_/DEG_TICK_MULTIPLIER)*(M_PI/180);
     measurement_tmp_[index].motor2_position_ = 
-        - (motor_cmd.motor2_position_/DEG_TICK_MULTIPLIER)*(M_PI/180);
+     -1.0 * - (motor_cmd.motor2_position_/DEG_TICK_MULTIPLIER)*(M_PI/180);
   }
   else
   {

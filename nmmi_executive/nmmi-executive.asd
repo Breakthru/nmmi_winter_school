@@ -17,6 +17,7 @@
   ((:module "src"
             :components
             ((:file "package")
-             (:file "arm-control" :depends-on ("package"))
-             (:file "proprioception" :depends-on ("package"))
+             (:file "utils" :depends-on ("package"))
+             (:file "arm-control" :depends-on ("package" "utils"))
+             (:file "proprioception" :depends-on ("package" "utils"))
              (:file "main" :depends-on ("package" "arm-control" "proprioception"))))))

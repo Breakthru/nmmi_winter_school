@@ -71,16 +71,9 @@
    (advertise "/arm_controller/command" "geometry_msgs/TransformStamped")
    (advertise "/arm_controller/stiff_command" "iai_qb_cube_msgs/CubeStiffArray")))
 
-(defun getf-rec (place &rest indicators)
-  (when indicators
-    (if (= 1 (length indicators))
-        (getf place (first indicators))
-        (apply #'getf-rec (getf place (first indicators)) (rest indicators)))))
-
 (defun command-move (handle kb target)
   (format t "Moving to ~a~%" target)
   (publish (getf handle :arm-control) (to-msg (getf-rec kb :targets target)))
   (publish (getf handle :stiff-control) 
            (to-stiffness-msg (or (getf-rec kb :stiffness-presets target)
                                  (getf-rec kb :stiffness-presets :default)))))
-

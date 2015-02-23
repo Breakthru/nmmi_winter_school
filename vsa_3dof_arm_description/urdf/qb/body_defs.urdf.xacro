@@ -106,7 +106,7 @@
 
                 <link name="${name}_rotating_finger"/>
                 <joint name="${name}_rotating_finger_joint" type="fixed" >
-                    <origin xyz="0 0.1 0" rpy="${- pi/2} 0  0"/>
+                    <origin xyz="${0.1 * 0.7071} ${0.1 * 0.7071} 0" rpy="${- pi/2} 0  ${- pi/4}"/>
                     <parent link="${name}_4_link" />
                     <child link="${name}_rotating_finger" />
                 </joint>

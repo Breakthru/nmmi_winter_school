@@ -21,13 +21,15 @@ include_directories(
 add_executable(iai_qb_cube_driver 
   src/iai_qb_cube_driver/Driver.cpp
   src/iai_qb_cube_driver/main.cpp)
-
 target_link_libraries(iai_qb_cube_driver
   ${catkin_LIBRARIES})
 
+add_executable(iai_qb_cube_interpolator 
+  src/iai_qb_cube_driver/Interpolator.cpp)
+target_link_libraries(iai_qb_cube_interpolator
+  ${catkin_LIBRARIES})
 
 ## Target that does nothing, to get the header files displayed in qtcreator
 add_custom_target(header_files
   SOURCES include/iai_qb_cube_driver/Driver.hpp
 )
-

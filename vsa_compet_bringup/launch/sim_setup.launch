@@ -1,5 +1,7 @@
 <launch>
 
+  <arg name="sim_mode" default="false"/>
+
   <param name="robot_description" command="$(find xacro)/xacro.py $(find vsa_3dof_arm_description)/urdf/qb/body.urdf.xacro"/>
 	
   <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher" />
@@ -20,9 +22,14 @@
     <param name="use_gui" value="False"/>
   </node-->
 
-  <include file="$(find iai_qb_cube_driver)/launch/nmmi_challenge.launch"/>
+  <include file="$(find iai_qb_cube_driver)/launch/nmmi_challenge.launch">
+    <arg name="sim_mode" value="$(arg sim_mode)"/>
+  </include>
 
-  <node pkg="vsa_compet_ik" type="arm_ik_controller.py" name="arm_ik_controller"/>
+  <node pkg="vsa_compet_ik" type="arm_ik_controller.py" name="arm_ik_controller">
+    <remap from="/iai_qb_cube_driver/command" to="/arm_interpolator/command"/>
+  </node>
+
   <node pkg="vsa_compet_ik" type="int_marker_to_arm_ik.py" name="int_marker_to_arm"/>
   <node pkg="vsa_compet_ik" type="int_marker_server_3dof.py" name="int_marker_server_3dof"/>
 	

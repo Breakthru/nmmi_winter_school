@@ -199,6 +199,11 @@ class arm_ik_controller(object):
         #Do the inverse kinematics
         rospy.loginfo("Current joint pos: %s", self.get_current_joint_pos())
         q_sol = self.kdl_kin.inverse(ps_in_base_link, q_guess=self.get_current_joint_pos())
+        
+        if q_sol is None:
+            rospy.loginfo("Looking for IK from a random start position:w"
+                          "")
+            q_sol = self.kdl_kin.inverse_search(ps_in_base_link, 0.5)
 
 
         if q_sol is None:

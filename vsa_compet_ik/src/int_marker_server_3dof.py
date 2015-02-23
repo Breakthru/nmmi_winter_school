@@ -277,7 +277,7 @@ if __name__=="__main__":
     #menu_handler.insert( "Second Entry", parent=sub_menu_handle, callback=processFeedback )
   
     
-    position = Point(0.15, 0, 0)
+    position = Point(0.24, 0, 0)
     make6DofMarker( False, InteractiveMarkerControl.NONE, position, True)
     #position = Point( 0, 3, 0)
     #make6DofMarker( True, InteractiveMarkerControl.NONE, position, True)

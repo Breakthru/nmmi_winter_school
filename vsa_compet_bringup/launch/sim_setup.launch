@@ -17,7 +17,7 @@
       'arm_3_joint': -0.1
     </rosparam>
     <param name="rate" value="50"/>
-    <param name="use_gui" value="True"/>
+    <param name="use_gui" value="False"/>
   </node>
 
   <include file="$(find iai_qb_cube_driver)/launch/nmmi_challenge.launch"/>

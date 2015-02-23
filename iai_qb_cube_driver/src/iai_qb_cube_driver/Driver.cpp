@@ -301,7 +301,7 @@ void Driver::readMeasurement()
       // TODO: 1, too, many...
       measurement_tmp_[i].motor1_position_ = 
           - (measurements[0]/DEG_TICK_MULTIPLIER)*(M_PI/180);
-      measurement_tmp_[i].motor1_position_ = 
+      measurement_tmp_[i].motor2_position_ = 
           - (measurements[1]/DEG_TICK_MULTIPLIER)*(M_PI/180);
       measurement_tmp_[i].joint_position_ = 
           - (measurements[2]/DEG_TICK_MULTIPLIER)*(M_PI/180);

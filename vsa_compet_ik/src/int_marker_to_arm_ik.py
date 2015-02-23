@@ -67,7 +67,9 @@ def main():
     sender = DataSender()
     sender.configure()
     
-    rospy.spin()
+    r = rospy.Rate(100)
+    while not rospy.is_shutdown():
+        r.sleep()    
     
     
 

@@ -305,5 +305,8 @@ if __name__=="__main__":
 
     server.applyChanges()
 
-    rospy.spin()
+    r = rospy.Rate(100)
+    while not rospy.is_shutdown():
+        r.sleep()
+
 

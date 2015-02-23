@@ -7,5 +7,6 @@
   <node pkg="iai_qb_cube_driver" type="iai_qb_cube_driver" 
         name="iai_qb_cube_driver" launch-prefix="with_realtime" output="screen">
     <param name="sim_mode" value="$(arg sim_mode)" />
+    <remap from="~joint_state" to="/joint_states"/>
   </node>
 </launch>

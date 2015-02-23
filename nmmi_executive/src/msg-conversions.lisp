@@ -27,15 +27,41 @@
 ;;; POSSIBILITY OF SUCH DAMAGE.
 
 (in-package :nmmi-executive)
-    
-(defun init-arm-control ()
-  (values
-   (advertise "/arm_controller/command" "geometry_msgs/TransformStamped")
-   (advertise "/arm_controller/stiff_command" "iai_qb_cube_msgs/CubeStiffArray")))
 
-(defun command-move (handle kb target)
-  (format t "Moving to ~a~%" target)
-  (publish (getf handle :arm-control) (to-msg (getf-rec kb :targets target)))
-  (publish (getf handle :stiff-control) 
-           (to-stiffness-msg (or (getf-rec kb :stiffness-presets target)
-                                 (getf-rec kb :stiffness-presets :default)))))
+(defgeneric to-msg (data))
+
+(defmethod to-msg ((data cl-transforms:3d-vector))
+  (with-slots (x y z) data
+    (make-msg "geometry_msgs/Vector3" :x x :y y :z z)))
+   
+(defmethod to-msg ((data cl-transforms:quaternion))
+  (with-slots (x y z w) data
+    (make-msg "geometry_msgs/Quaternion" :x x :y y :z z :w w)))
+
+(defmethod to-msg ((data cl-transforms:transform))
+  (with-slots (translation rotation) data
+    (make-msg "geometry_msgs/Transform" 
+              :translation (to-msg translation):rotation (to-msg rotation))))
+
+(defmethod to-msg ((data cl-tf2::header))
+  (with-slots (frame-id stamp) data
+    (make-msg "std_msgs/Header" :stamp stamp :frame_id frame-id)))
+  
+(defmethod to-msg ((data cl-tf2::stamped-transform))
+  (with-slots (header child-frame-id (transform cl-tf2:transform)) data
+    (make-msg 
+     "geometry_msgs/TransformStamped" 
+     :header (to-msg header) :child_frame_id child-frame-id :transform (to-msg transform))))
+
+(defun to-stiffness-msg (stiffness-presets)
+  (labels ((to-msg-rec (stiffness-presets)
+           (when stiffness-presets
+             (destructuring-bind (joint-name stiffness-preset &rest remainder) 
+                 stiffness-presets
+               (concatenate 'list
+                            (list (make-msg "iai_qb_cube_msgs/CubeStiff"
+                                            :joint_name (string-downcase (string joint-name))
+                                            :stiffness_preset stiffness-preset))
+                            (to-msg-rec remainder))))))
+    (make-msg "iai_qb_cube_msgs/CubeStiffArray"
+              :stiffness_presets (coerce (to-msg-rec stiffness-presets) 'vector))))

@@ -1,6 +1,6 @@
 <launch>
 
-  <arg name="sim_mode" default="false"/>
+  <arg name="sim_mode" default="true"/>
 
   <param name="robot_description" command="$(find xacro)/xacro.py $(find vsa_3dof_arm_description)/urdf/qb/body.urdf.xacro"/>
 	

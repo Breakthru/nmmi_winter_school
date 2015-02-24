@@ -112,7 +112,7 @@ void* Driver::rt_run()
 }
 
 Driver::Driver(const ros::NodeHandle& nh): 
-    nh_(nh), comm_up_(false), cubes_active_(false), sim_mode_(false)
+    nh_(nh), comm_up_(false), cubes_active_(false), sim_mode_(false), comm_error_counter_(0)
 {
     //set up the mutex
     pthread_mutexattr_t mattr;
@@ -296,7 +296,11 @@ void Driver::readMeasurement()
       short int cube_id = it->second;
       short int measurements[3];
       if (commGetMeasurements(&cube_comm_, cube_id, measurements) == -1){
-          ROS_ERROR("Error during reading of cube measurement");
+          comm_error_counter_ += 1;
+          if (comm_error_counter_ > 1000) {
+            ROS_ERROR("1000 errors during reading of cube measurement");
+            comm_error_counter_ = 0;
+          }
           i++;
           continue;
       }

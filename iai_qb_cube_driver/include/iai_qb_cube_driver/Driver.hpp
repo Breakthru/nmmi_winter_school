@@ -61,6 +61,7 @@ namespace iai_qb_cube_driver
       sensor_msgs::JointState getJointStateMsg();
       iai_qb_cube_msgs::CubeStateArray getCubeStateMsg();
 
+      int comm_error_counter_;
 
       //
       // Internal flags

@@ -137,7 +137,7 @@ class MiniInterpolator(object):
         dist_p_scalar = kdl.dot(dist_p, dist_p)
         dist_M_scalar = kdl.dot(dist_M, dist_M)
         
-        if (dist_p_scalar > 0.001) or (dist_M_scalar > 0.001):
+        if (dist_p_scalar > 0.0001) or (dist_M_scalar > 0.0001):
             return True
         else:
             return False

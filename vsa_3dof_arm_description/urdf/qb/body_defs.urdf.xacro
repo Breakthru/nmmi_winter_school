@@ -85,10 +85,10 @@
 		<link name="${name}_dummy_link"/>
 
 		<xacro:cube parent="${name}_dummy_link" name="${name}_1" 
-                  position="0 0 0" orientation="0 0 0" low_limit="-110" high_limit="110" />
+                  position="0 0 0" orientation="0 0 0" low_limit="-107" high_limit="107" />
 
 		<xacro:cube parent="${name}_1_link" name="${name}_2" 
-                  position="${c_flange/scale_f} 0 0" orientation="0 0 0" low_limit="-125" high_limit="125" />
+                  position="${c_flange/scale_f} 0 0" orientation="0 0 0" low_limit="-107" high_limit="107" />
 
 		<xacro:cube parent="${name}_2_link" name="${name}_3" 
                   position="${c_flange/scale_f} 0 0" orientation="0 0 0"  low_limit="-180" high_limit="180"/>

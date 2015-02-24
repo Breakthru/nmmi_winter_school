@@ -75,7 +75,7 @@
   </link>
 
   <joint name="left_holder_joint" type="fixed" >
-      <origin xyz="${0.0345} -0.16 ${holder_height}" rpy="${pi} 0 ${-pi/2}"/>
+      <origin xyz="${0.0415} -0.16 ${holder_height}" rpy="${pi} 0 ${-pi/2}"/>
       <parent link="base_link" />
       <child link="left_holder_link" />
   </joint>
@@ -101,7 +101,7 @@
   </link>
 
   <joint name="right_holder_joint" type="fixed" >
-      <origin xyz="${0.0345} 0.16 ${holder_height}" rpy="${pi} 0 ${pi/2}"/>
+      <origin xyz="${0.0415} 0.16 ${holder_height}" rpy="${pi} 0 ${pi/2}"/>
       <parent link="base_link" />
       <child link="right_holder_link" />
   </joint>

@@ -65,12 +65,15 @@
                         (make-transform (make-3d-vector -0.01 0.04 0.0)
                                         (axis-angle->quaternion
                                          (make-3d-vector 0 0 1) 0.35)))
-
      :right-grasp ,(make-stamped-transform 
                        "right_holder_link" "arm_fixed_finger" 0.0
                        (make-transform (make-3d-vector 0.0 0.0 0.0)
                                        (axis-angle->quaternion
                                         (make-3d-vector 0 0 1) -0.1)))
+     :right-postgrasp ,(make-stamped-transform 
+                       "right_holder_link" "arm_fixed_finger" 0.0
+                       (make-transform (make-3d-vector -0.02 0.0 0.0)
+                                       (make-identity-rotation)))
      :middle ((:joint_name "arm_1_joint"
                :equilibrium_point 0.0
                :stiffness_preset 20)
@@ -156,19 +159,15 @@
   (move-for-collision handle kb :left-grasp)
   (gripper handle kb :close-loose)
   (move handle kb :left-postgrasp)
+  (sleep 1)
   (move handle kb :middle)
   (move handle kb :right-pregrasp)
   (move handle kb :right-pregrasp3)
   (move handle kb :right-grasp)
   (gripper handle kb :open)
-  ;; (move handle kb :left-grasp)
-  ;; (gripper handle kb :close)
-  ;; (move handle kb :left-postgrasp)
-  ;; (move handle kb :middle)
-  ;; (move handle kb :right-pregrasp)
-  ;; (move handle kb :right-grasp)
-  ;; (gripper handle kb :open)
-)
+  (move handle kb :right-postgrasp)
+  (sleep 3)
+  (move handle kb :middle))
 
 (defun main ()
   (with-ros-node ("nmmi_executive" :spin t)

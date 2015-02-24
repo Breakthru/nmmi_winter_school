@@ -16,13 +16,4 @@
     <arg name="node-name" value="arm_interpolator"/>
   </include>
 
-
-  <!--rosparam command="load" file="$(find iai_qb_cube_driver)/config/arm-interpolator.yaml"/-->
-
-  <!--node pkg="iai_qb_cube_driver" type="iai_qb_cube_interpolator" name="arm_interpolator" output="screen">
-    <remap from="~out_command" to="/iai_qb_cube_driver/command"/>
-    <remap from="~in_state" to="/joint_states"/>
-    <remap from="~in_command" to="~command"/>
-  </node-->
-
 </launch>

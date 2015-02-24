@@ -115,6 +115,8 @@ class MiniInterpolator(object):
         self.trajectory = None
         self.start_time = rospy.Time.now()
         self.last_dst_pose = kdl.Frame()
+        self.pose_vector = []
+        self.pose_vector.append([rospy.Time.now(), kdl.Frame()])
         
         
     def set_current_pose(self, frame):
@@ -122,8 +124,38 @@ class MiniInterpolator(object):
         
     def new_goal(self, frame):
         self.dst_pose = kdl.Frame(frame)
+
+    def check_if_new_goal(self, frame):
+        dist_p = kdl.diff(self.dst_pose.p, frame.p)
+        dist_M = kdl.diff(self.dst_pose.M, frame.M)
         
-    def replan_movement(self, interp_time=2):
+                       
+        if dist_M[0] != dist_M[0]: #got a nan
+            rospy.logwarn("Got a NAN in frame.M distance")
+            return True
+        
+        dist_p_scalar = kdl.dot(dist_p, dist_p)
+        dist_M_scalar = kdl.dot(dist_M, dist_M)
+        
+        if (dist_p_scalar > 0.001) or (dist_M_scalar > 0.001):
+            return True
+        else:
+            return False
+        
+        
+        
+    def replan_movement(self, goal_kdl_frame, current_kdl_frame, interp_time=2):
+        
+        #Check if really new goal:
+        if not self.check_if_new_goal(goal_kdl_frame):
+            rospy.logwarn("Not a new goal")
+            return
+        
+        #If we got here, the message is really different
+        
+        self.new_goal(goal_kdl_frame)
+        self.set_current_pose(current_kdl_frame)
+        
 
         #find distance
         rot_dist = kdl.diff(self.current_pose.M, self.dst_pose.M)
@@ -286,6 +318,7 @@ class Arm_ik_controller(object):
         self.ros_cube_joint_states_topic_name = "joint_states" #"/iai_qb_cube_driver/joint_state"
         #self.minivf = MiniVectorField()
         self.interpolator = MiniInterpolator()
+        
         self.finished_trajectory = True
         
     def __del__(self):
@@ -325,6 +358,8 @@ class Arm_ik_controller(object):
             
         self.cart_goal = None
         self.fresh_cart_goal = False
+        
+        self.interpolator.configure()        
         
         #Start the subscriber
         rospy.Subscriber(self.ros_transform_topic_name, geometry_msgs.msg.TransformStamped, self.cb_command, queue_size=1)
@@ -409,6 +444,7 @@ class Arm_ik_controller(object):
         ps.pose.orientation = msg.transform.rotation
         ps.header.frame_id = msg.header.frame_id
         
+        
 
         #Save the new desired cartesian pose
         self.cart_goal = poseStamped_to_kdlFrame(ps)  #this one saves [frame_id, kdl_frame]
@@ -428,6 +464,9 @@ class Arm_ik_controller(object):
         
         #If new cartesian goal came, reconfigure the interpolator
         if self.fresh_cart_goal:
+            
+            
+            
             self.fresh_cart_goal = False
             self.finished_trajectory = False
             rospy.logwarn("Fresh cart goal")
@@ -444,7 +483,7 @@ class Arm_ik_controller(object):
             #print ps_0
         
             ps = self.tf_listener.transformPose('base_link_zero', ps_0)
-            #print("After converting:")
+            #print("After converting to base_link_zero:")
             #print ps
         
             (goal_kdl_frame_id, goal_kdl_frame) = poseStamped_to_kdlFrame(ps)
@@ -467,9 +506,9 @@ class Arm_ik_controller(object):
 
 
 
-            self.interpolator.new_goal(goal_kdl_frame)
-            self.interpolator.set_current_pose(current_kdl_frame)
-            self.interpolator.replan_movement()
+            #self.interpolator.new_goal(goal_kdl_frame)
+            #self.interpolator.set_current_pose(current_kdl_frame)
+            self.interpolator.replan_movement(goal_kdl_frame, current_kdl_frame)
             
         #Get the goal frame for this cycle from the interpolator
         kdl_frame = self.interpolator.query_plan()

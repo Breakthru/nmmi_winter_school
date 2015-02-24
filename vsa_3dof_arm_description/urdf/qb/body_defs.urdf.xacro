@@ -85,16 +85,16 @@
 		<link name="${name}_dummy_link"/>
 
 		<xacro:cube parent="${name}_dummy_link" name="${name}_1" 
-                  position="0 0 0" orientation="0 0 0" low_limit="-90" high_limit="90" />
+                  position="0 0 0" orientation="0 0 0" low_limit="-110" high_limit="110" />
 
 		<xacro:cube parent="${name}_1_link" name="${name}_2" 
-                  position="${c_flange/scale_f} 0 0" orientation="0 0 0" low_limit="-115" high_limit="115" />
+                  position="${c_flange/scale_f} 0 0" orientation="0 0 0" low_limit="-125" high_limit="125" />
 
 		<xacro:cube parent="${name}_2_link" name="${name}_3" 
-                  position="${c_flange/scale_f} 0 0" orientation="0 0 0"  low_limit="-170" high_limit="170"/>
+                  position="${c_flange/scale_f} 0 0" orientation="0 0 0"  low_limit="-180" high_limit="180"/>
 
 		<xacro:cube parent="${name}_3_link" name="${name}_4" 
-                  position="0 0 ${one_flange/scale_f} " orientation="${pi / 2} 0 0"  low_limit="-90" high_limit="90"/>
+                  position="0 0 ${one_flange/scale_f} " orientation="${pi / 2} 0 0"  low_limit="-15" high_limit="90"/>
 
                 <link name="${name}_fixed_finger"/>
                 <joint name="${name}_fixed_finger_joint" type="fixed" >

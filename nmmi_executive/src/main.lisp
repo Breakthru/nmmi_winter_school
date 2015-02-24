@@ -61,22 +61,14 @@
                      :equilibrium_point 0.0
                      :stiffness_preset 20)
               :close (:joint_name "arm_4_joint" 
-                     :equilibrium_point ,(/ PI 4.0)
+                     :equilibrium_point 1.1
                      :stiffness_preset 20))
     :thresholds (:default-cartesian 0.005
-                 :default-joint 0.05)))
+                 :default-joint 0.05
+                 :gripper (:close 0.35))))
 
 (defun init-nmmi-executive ()
-  (multiple-value-bind (arm-control stiff-control joint-control) (init-arm-control)
-    (multiple-value-bind (tf joint-states-sub joint-states-fluent) (init-proprioception)
-      ;; wait for everything to settle down
-      (sleep 1)
-      `(:arm-control ,arm-control 
-        :stiff-control ,stiff-control 
-        :joint-control ,joint-control
-        :tf ,tf
-        :joint-states-fluent ,joint-states-fluent
-        :joint-states-sub ,joint-states-sub))))
+  (multiple-value-bind (arm-control stiff-control joint-control) (init-arm
 
 (defun move (handle kb target)
   (let ((finished-fluent (cpl-impl:make-fluent :value nil)))

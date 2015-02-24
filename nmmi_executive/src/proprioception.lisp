@@ -56,7 +56,8 @@
 
 (defun gripper-finished-p (handle kb target)
   (let ((target-state (getf-rec kb :gripper target :equilibrium_point))
-        (threshold (getf-rec kb :thresholds :default-joint))
+        (threshold (or (getf-rec kb :thresholds :gripper target)
+                       (getf-rec kb :thresholds :default-joint)))
         (current-state (getf (cpl-impl:value (getf handle :joint-states-fluent)) :arm_4_joint)))
     
     (> threshold 

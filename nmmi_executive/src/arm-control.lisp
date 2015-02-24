@@ -32,7 +32,7 @@
   (values
    (advertise "/arm_controller/command" "geometry_msgs/TransformStamped")
    (advertise "/arm_controller/stiff_command" "iai_qb_cube_msgs/CubeStiffArray")
-   (advertise "/iai_qb_cube_driver/command" "iai_qb_cube_msgs/CubeCmdArray")))
+   (advertise "/gripper_interpolator/command" "iai_qb_cube_msgs/CubeCmdArray")))
 
 (defun command-move (handle kb target)
   (format t "Moving to ~a~%" target)

@@ -137,7 +137,7 @@ class MiniInterpolator(object):
         dist_p_scalar = kdl.dot(dist_p, dist_p)
         dist_M_scalar = kdl.dot(dist_M, dist_M)
         
-        if (dist_p_scalar > 0.0001) or (dist_M_scalar > 0.0001):
+        if (dist_p_scalar > 0.00001) or (dist_M_scalar > 0.00001):
             return True
         else:
             return False
@@ -414,7 +414,7 @@ class Arm_ik_controller(object):
             cubecmd = CubeCmd()
             cubecmd.joint_name = joint_name
             cubecmd.equilibrium_point = self.arm_setpoints[joint_name]['eq_point']
-            cubecmd.stiffness_preset = 35 #self.arm_setpoints[joint_name]['stiff']  
+            cubecmd.stiffness_preset = self.arm_setpoints[joint_name]['stiff']  
             out_msg.commands.append(cubecmd)
         self.cubes_pub.publish(out_msg)
 

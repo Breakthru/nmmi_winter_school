@@ -19,6 +19,11 @@ class Interpolator
         return false;
       }
 
+      std::cout << "Joint names:\n";
+      for(size_t i=0; i<joint_names_.size(); ++i)
+        std::cout << joint_names_[i] << "\n";
+      std::cout << "\n\n";
+
       if(!nh_.getParam("p_gain", p_gain_))
       {
         ROS_ERROR("No parameter 'p_gain' in namespace %s found", 
@@ -77,16 +82,18 @@ class Interpolator
       {
         iai_qb_cube_msgs::CubeCmdArray out_msg;
        
+        size_t j=0;
         for(size_t i=0; i<msg->name.size(); ++i)
-          if((i<cmd_in_.commands.size()) &&
-             (msg->name[i].compare(cmd_in_.commands[i].joint_name) == 0))
+          if((j<cmd_in_.commands.size()) &&
+             (msg->name[i].compare(cmd_in_.commands[j].joint_name) == 0))
           {
             iai_qb_cube_msgs::CubeCmd m;
-            m = cmd_in_.commands[i];
+            m = cmd_in_.commands[j];
             double error = m.equilibrium_point - msg->position[i];
             error = p_gain_ * error;
             m.equilibrium_point = msg->position[i] + clamp(error, -clamp_, clamp_);
             out_msg.commands.push_back(m);
+            ++j;
           }
 
         pub_.publish(out_msg);

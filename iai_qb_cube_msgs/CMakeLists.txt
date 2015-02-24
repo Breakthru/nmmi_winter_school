@@ -46,6 +46,8 @@ add_message_files(
   CubeStateArray.msg
   CubeStiff.msg
   CubeStiffArray.msg
+  CubeData.msg
+  CubeDataArray.msg
 )
 
 ## Generate services in the 'srv' folder

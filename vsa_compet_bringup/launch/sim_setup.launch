@@ -32,6 +32,7 @@
 
   <node pkg="vsa_compet_ik" type="int_marker_to_arm_ik.py" name="int_marker_to_arm"/>
   <node pkg="vsa_compet_ik" type="int_marker_server_3dof.py" name="int_marker_server_3dof"/>
+  <node pkg="vsa_compet_ik" type="arm_pos_error.py" name="arm_pos_error"/>
 	
   <node pkg="tf2_ros" type="buffer_server" name="t2_buffer_server"/>
 

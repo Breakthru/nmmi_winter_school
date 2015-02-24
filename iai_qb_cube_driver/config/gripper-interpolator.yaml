@@ -1,5 +1,5 @@
 gripper_interpolator:
   joint_names:
     - arm_4_joint
-  p_gain: 10.0
+  p_gain: 1.0
   clamp: 0.05

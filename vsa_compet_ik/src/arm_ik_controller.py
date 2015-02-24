@@ -133,7 +133,9 @@ class MiniInterpolator(object):
             self.current_pose.M.DoRotZ(2*3.141509/180.0)
             
         dist = kdl.diff(kdl.Frame(self.current_pose), kdl.Frame(self.dst_pose))
-                
+        
+        #print("current pose:")
+        #print self.current_pose.M.GetRPY()
         
         dt = 0.1
         total_time = interp_time #sec  FIXME: Get as parameter
@@ -142,18 +144,23 @@ class MiniInterpolator(object):
         self.start_time = rospy.Time.now()  
         self.pose_vector = []
         for i in range(times + 1):
-            inter_pose = kdl.addDelta(kdl.Frame(self.current_pose), dist, dx * i)
+            if i == 0:
+                inter_pose = self.current_pose
+            else:
+                inter_pose = kdl.addDelta(kdl.Frame(self.current_pose), dist, dx * i)
             inter_time = self.start_time + rospy.Duration(dt) * i
             #rospy.logwarn("Generated pose:")
             #print inter_pose
+            #print inter_pose.p
+            #print inter_pose.M.GetRPY()
             #rospy.logwarn("Original pose:")
             #print self.current_pose
-            self.pose_vector.append([inter_time, inter_pose])
+            self.pose_vector.append([inter_time, kdl.Frame(inter_pose)])
         
         
     def query_plan(self):
         #to disable the interpolator
-        return(self.dst_pose)
+        #return(self.dst_pose)
     
         for time, pose in self.pose_vector:
             if time > rospy.Time.now():
@@ -412,34 +419,48 @@ class Arm_ik_controller(object):
         if self.cart_goal is None:
             return
         
-        [frame_id, kdl_frame] = self.cart_goal
-        #print self.get_current_joint_pos()
-        #return
-    
-        #Here convert the cartesian goal to our base_link_zero before continuing
-        ps_0 = kdlFrame_to_poseStamped(kdl_frame, frame_id)
-        #print ps_0
-        #print("Before converting:")
-        #print ps_0
-        
-        ps = self.tf_listener.transformPose('base_link_zero', ps_0)
-        #print("After converting:")
-        #print ps
-        
-        (goal_kdl_frame_id, goal_kdl_frame) = poseStamped_to_kdlFrame(ps)
-    
-        #Find the current kdl frame from joint angles
-        current_homo_mat = self.kdl_kin.forward(self.get_current_joint_pos())
-        (pos, quat) = PoseConv.to_pos_quat(current_homo_mat)
-        current_kdl_frame = kdl.Frame()
-        current_kdl_frame.p = kdl.Vector(pos[0], pos[1], pos[2])
-        current_kdl_frame.M = kdl.Rotation.Quaternion(quat[0], quat[1], quat[2], quat[3])
         
         
         #If new cartesian goal came, reconfigure the interpolator
         if self.fresh_cart_goal:
             self.fresh_cart_goal = False
             rospy.logwarn("Fresh cart goal")
+
+
+            [frame_id, kdl_frame] = self.cart_goal
+            #print self.get_current_joint_pos()
+            #return
+        
+            #Here convert the cartesian goal to our base_link_zero before continuing
+            ps_0 = kdlFrame_to_poseStamped(kdl_frame, frame_id)
+            #print ps_0
+            #print("Before converting:")
+            #print ps_0
+        
+            ps = self.tf_listener.transformPose('base_link_zero', ps_0)
+            #print("After converting:")
+            #print ps
+        
+            (goal_kdl_frame_id, goal_kdl_frame) = poseStamped_to_kdlFrame(ps)
+        
+        
+        
+            (pos, quat) = self.tf_listener.lookupTransform(self.tf_base_link_name, self.tf_end_link_name, rospy.Duration(0.0))
+            #print "TR:" , tr
+        
+            #Find the current kdl frame from joint angles
+            #current_homo_mat = self.kdl_kin.forward(self.get_current_joint_pos())
+            #(pos, quat) = PoseConv.to_pos_quat(current_homo_mat)  #FIXME. quat always 1 0 0 0
+            #print "QUAT: ", quat
+            #print current_homo_mat
+            current_kdl_frame = kdl.Frame()
+            current_kdl_frame.p = kdl.Vector(pos[0], pos[1], pos[2])
+            current_kdl_frame.M = kdl.Rotation.Quaternion(quat[0], quat[1], quat[2], quat[3])
+
+
+
+
+
             self.interpolator.new_goal(goal_kdl_frame)
             self.interpolator.set_current_pose(current_kdl_frame)
             self.interpolator.replan_movement()

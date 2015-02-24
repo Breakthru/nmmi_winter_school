@@ -2,14 +2,14 @@
   <arg name="sim_mode" default="false"/>
 
   <include file="$(find iai_qb_cube_driver)/launch/iai_qb_cube_driver.launch">
-    <arg name="sim_mode" value="$(arg sim_mode)"/>
+    <arg name="sim_mode" value="false"/>
     <arg name="config_file" value="$(find iai_qb_cube_driver)/config/nmmi-challenge.yaml"/>
   </include>
 
-  <include file="$(find iai_qb_cube_driver)/launch/interpolator.launch">
+  <!--include file="$(find iai_qb_cube_driver)/launch/interpolator.launch">
     <arg name="config-file" value="$(find iai_qb_cube_driver)/config/gripper-interpolator.yaml"/>
     <arg name="node-name" value="gripper_interpolator"/>
-  </include>
+  </include-->
 
   <include file="$(find iai_qb_cube_driver)/launch/interpolator.launch">
     <arg name="config-file" value="$(find iai_qb_cube_driver)/config/arm-interpolator.yaml"/>

@@ -34,8 +34,13 @@
          (joint-states-sub (subscribe 
                             "joint_states_throttle" "sensor_msgs/JointState"
                             (lambda (msg) 
-                              (setf (cpl:value joint-states-fluent) (from-msg msg))))))
-    (values tf joint-states-sub joint-states-fluent)))
+                              (setf (cpl:value joint-states-fluent) (from-msg msg)))))
+         (arm-error-fluent (cpl-impl:make-fluent))
+         (arm-error-sub (subscribe 
+                            "arm_pos_error/data" "iai_qb_cube_msgs/CubeDataArray"
+                            (lambda (msg) 
+                              (setf (cpl:value arm-error-fluent) (from-msg msg))))))
+    (values tf joint-states-sub joint-states-fluent arm-error-sub arm-error-fluent)))
 
 (defun guarded-tf2-lookup (tf target-frame source-frame)
   (handler-case (cl-tf2:lookup-transform tf target-frame source-frame 0.0 0.1)
@@ -43,16 +48,30 @@
 
 (defun move-finished-p (handle kb target)
   "Predicate to check whether we have reached `target' using `handle' and `kb'."
-  (let ((target-transform (getf-rec kb :targets target))
-        (threshold (or (getf-rec kb :thresholds target)
-                       (getf-rec kb :thresholds :default-cartesian))))
-  (with-slots (child-frame-id header) target-transform
-    (with-slots (frame-id) header
-      (let ((current-transform (guarded-tf2-lookup (getf handle :tf) frame-id child-frame-id)))
-        (> threshold
-           (v-dist
-            (translation (cl-tf2:transform target-transform))
-            (translation (cl-tf2:transform current-transform)))))))))
+  (let ((goal (getf-rec kb :targets target)))
+    (etypecase goal
+      (cl-tf2::stamped-transform
+       (let ((target-transform (getf-rec kb :targets target))
+             (threshold (or (getf-rec kb :thresholds target)
+                            (getf-rec kb :thresholds :default-cartesian))))
+         (with-slots (child-frame-id header) target-transform
+           (with-slots (frame-id) header
+             (let ((current-transform (guarded-tf2-lookup (getf handle :tf) frame-id child-frame-id)))
+               (> threshold
+                  (v-dist
+                   (translation (cl-tf2:transform target-transform))
+                   (translation (cl-tf2:transform current-transform)))))))))
+      (list
+       (let ((threshold (or (getf-rec kb :thresholds target)
+                            (getf-rec kb :thresholds :default-joint)))
+             (current (cpl-impl:value (getf handle :joint-states-fluent))))
+         (> threshold
+            (reduce #'+
+                    (mapcar (lambda (a b)
+                              (abs (- a b)))
+                            (getf-multiple current :arm_1_joint :arm_2_joint :arm_3_joint) 
+                            (mapcar (alexandria:rcurry #'getf :equilibrium_point) goal)))))))))
+       
 
 (defun gripper-finished-p (handle kb target)
   (let ((target-state (getf-rec kb :gripper target :equilibrium_point))
@@ -63,5 +82,8 @@
     (> threshold 
        (abs (- target-state current-state)))))
 
-    
-  
+(defun collision-p (handle kb)
+  (let* ((threshold (getf-rec kb :thresholds :default-contact-scalar))
+         (arm-error (cpl-impl:value (getf handle :arm-error-fluent))))
+    (and (> 0.001 (getf arm-error :contact-scalar-gradient))
+         (< threshold (getf arm-error :contact-scalar)))))

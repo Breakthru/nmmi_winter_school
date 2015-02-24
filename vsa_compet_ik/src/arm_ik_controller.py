@@ -137,8 +137,8 @@ class MiniInterpolator(object):
         #print("current pose:")
         #print self.current_pose.M.GetRPY()
         
-        dt = 0.1
-        total_time = interp_time #sec  FIXME: Get as parameter
+        dt = 0.05   #looks smoother at 20Hz
+        total_time = interp_time #sec
         times = int(total_time / dt )
         dx = 1.0 / times
         self.start_time = rospy.Time.now()  
@@ -174,7 +174,8 @@ class MiniInterpolator(object):
     
         #If we get here, found no unreached setpoint, so just return the last goal frame
         #rospy.loginfo("returning dst pose")
-        return(self.last_dst_pose)
+        #return(self.last_dst_pose)
+        return(None)  #None marks end of the interpolation
     
     
 
@@ -280,9 +281,12 @@ class Arm_ik_controller(object):
         self.ros_transform_topic_name = "/arm_controller/command"
         self.ros_stiff_topic_name = "/arm_controller/stiff_command"
         self.tf_base_link_name = 'base_link_zero'
-        self.tf_end_link_name = 'arm_fixed_finger'        
+        self.tf_end_link_name = 'arm_fixed_finger'
+        self.ros_cube_control_out_topic_name = "/arm_interpolator/command"  # was "/iai_qb_cube_driver/command"
+        self.ros_cube_joint_states_topic_name = "joint_states" #"/iai_qb_cube_driver/joint_state"
         #self.minivf = MiniVectorField()
         self.interpolator = MiniInterpolator()
+        self.finished_trajectory = True
         
     def __del__(self):
         #Stop all the motors?
@@ -329,11 +333,11 @@ class Arm_ik_controller(object):
         rospy.Subscriber(self.ros_stiff_topic_name, CubeStiffArray, self.cb_stiff_command)
         
         #Subscriber to find the current joint positions
-        rospy.Subscriber("/iai_qb_cube_driver/joint_state", JointState, self.cb_joint_states )
+        rospy.Subscriber(self.ros_cube_joint_states_topic_name, JointState, self.cb_joint_states )
         
         #Prepare our publisher
         #self.cubes_pub = rospy.Publisher("/iai_qb_cube_driver/command", CubeCmdArray, queue_size=3)
-        self.cubes_pub = rospy.Publisher("/arm_interpolator/command", CubeCmdArray, queue_size=3)
+        self.cubes_pub = rospy.Publisher(self.ros_cube_control_out_topic_name , CubeCmdArray, queue_size=3)
         
         #Set up a timer for the function talking to the cubes
         rospy.Timer(rospy.Duration(0.05), self.cb_cube_controller)
@@ -419,11 +423,13 @@ class Arm_ik_controller(object):
         if self.cart_goal is None:
             return
         
-        
+        if self.finished_trajectory and not self.fresh_cart_goal:
+            return
         
         #If new cartesian goal came, reconfigure the interpolator
         if self.fresh_cart_goal:
             self.fresh_cart_goal = False
+            self.finished_trajectory = False
             rospy.logwarn("Fresh cart goal")
 
 
@@ -467,16 +473,37 @@ class Arm_ik_controller(object):
             
         #Get the goal frame for this cycle from the interpolator
         kdl_frame = self.interpolator.query_plan()
+        
+        if kdl_frame is None:
+            rospy.logwarn("Finished the trajectory")
+            self.finished_trajectory = True
+            return
+        
+        
         ps_in_base_link = kdlFrame_to_poseStamped(kdl_frame, 'base_link_zero')
         
         #Do the inverse kinematics
         rospy.logdebug("Current joint pos: %s", self.get_current_joint_pos())
-        q_sol = self.kdl_kin.inverse(ps_in_base_link, q_guess=self.get_current_joint_pos())
+        q_guess = self.get_current_joint_pos()
+        print "Joints: ", q_guess
+        q_sol = self.kdl_kin.inverse(ps_in_base_link, q_guess=q_guess)
     
+        if q_sol is None:
+            q_sol = self.kdl_kin.inverse(ps_in_base_link)
+
+        #Try on the left side
+        if q_sol is None:
+            q_sol = self.kdl_kin.inverse(ps_in_base_link, q_guess=[-0.18, 1.5, 0.27])
+
+
+        #try on the right side, elbow out
+        if q_sol is None:
+            q_sol = self.kdl_kin.inverse(ps_in_base_link, q_guess=[-0.5, -0.65, -0.5])
+        
 
         if q_sol is None:
             rospy.loginfo("Looking for IK from a random start position")
-            q_sol = self.kdl_kin.inverse_search(ps_in_base_link, 0.1)
+            q_sol = self.kdl_kin.inverse_search(ps_in_base_link, 0.05)
     
     
         if q_sol is None:

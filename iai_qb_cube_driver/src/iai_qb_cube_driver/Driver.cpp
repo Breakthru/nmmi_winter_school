@@ -149,16 +149,13 @@ void Driver::run()
  
   cmd_sub_ = nh_.subscribe("command", 1, &Driver::cmd_sub_cb_, this);
 
-  ros::AsyncSpinner spinner(1);
-  spinner.start();
-
-
   ros::Rate r(publish_frequency_);
   while(ros::ok())
   {
     pub_.publish(getJointStateMsg());
     cube_pub_.publish(getCubeStateMsg());
  
+    ros::spinOnce();
     r.sleep();
   }
 

@@ -32,11 +32,23 @@
   `(:targets
     (:left-pregrasp ,(make-stamped-transform 
                       "left_holder_link" "arm_fixed_finger" 0.0
-                      (make-transform (make-3d-vector 0.0 -0.05 0.0)
+                      (make-transform (make-3d-vector -0.06 -0.01 0.0)
                                       (make-identity-rotation)))
+     :left-grasp ,(make-stamped-transform 
+                   "left_holder_link" "arm_fixed_finger" 0.0
+                   (make-transform (make-3d-vector 0.01 -0.01 0.0)
+                                   (make-identity-rotation)))
+     :left-postgrasp ,(make-stamped-transform 
+                       "left_holder_link" "arm_fixed_finger" 0.0
+                       (make-transform (make-3d-vector 0.01 -0.05 0.0)
+                                       (make-identity-rotation)))
      :right-pregrasp ,(make-stamped-transform 
                        "right_holder_link" "arm_fixed_finger" 0.0
-                       (make-transform (make-3d-vector 0.0 0.05 0.0)
+                       (make-transform (make-3d-vector -0.06 0.01 0.0)
+                                       (make-identity-rotation)))
+     :right-grasp ,(make-stamped-transform 
+                       "right_holder_link" "arm_fixed_finger" 0.0
+                       (make-transform (make-3d-vector 0.01 0.01 0.0)
                                        (make-identity-rotation)))
      :middle ,(make-stamped-transform 
                "base_link_zero" "arm_fixed_finger" 0.0
@@ -46,12 +58,12 @@
     (:default (:arm_1_joint 15 :arm_2_joint 15 :arm_3_joint 15)
      :right-pregrasp (:arm_1_joint 0 :arm_2_joint 0 :arm_3_joint 0))
     :gripper (:open (:joint_name "arm_4_joint" 
-                     :equilibrium_point ,(/ PI -4.0) 
+                     :equilibrium_point 0.0
                      :stiffness_preset 20)
               :close (:joint_name "arm_4_joint" 
-                     :equilibrium_point 0.0 
+                     :equilibrium_point ,(/ PI 4.0)
                      :stiffness_preset 20))
-    :thresholds (:default-cartesian 0.02
+    :thresholds (:default-cartesian 0.005
                  :default-joint 0.05)))
 
 (defun init-nmmi-executive ()
@@ -70,28 +82,34 @@
   (let ((finished-fluent (cpl-impl:make-fluent :value nil)))
     (cpl:pursue
       (cpl-impl:wait-for finished-fluent)
-      (cpl-impl:whenever ((cpl:pulsed (getf handle :joint-states-fluent)))
-        (if (move-finished-p handle kb target)
-            (setf (cpl-impl:value finished-fluent) t)
-            (command-move handle kb target))))))
+      (unless (move-finished-p handle kb target)
+        (command-move handle kb target)
+        (cpl-impl:whenever ((cpl:pulsed (getf handle :joint-states-fluent)))
+          (when (move-finished-p handle kb target)
+            (setf (cpl-impl:value finished-fluent) t)))))))
 
 (defun gripper (handle kb target)
   (let ((finished-fluent (cpl-impl:make-fluent :value nil)))
     (cpl:pursue
       (cpl-impl:wait-for finished-fluent)
-      (cpl-impl:whenever ((cpl:pulsed (getf handle :joint-states-fluent)))
-        (if (gripper-finished-p handle kb target)
-            (setf (cpl-impl:value finished-fluent) t)
-            (command-gripper handle kb target))))))
+      (unless (gripper-finished-p handle kb target)
+        (command-gripper handle kb target)
+        (cpl-impl:whenever ((cpl:pulsed (getf handle :joint-states-fluent)))
+          (when (gripper-finished-p handle kb target)
+            (setf (cpl-impl:value finished-fluent) t)))))))
     
 (defun run-nmmi-executive (handle kb)
   (move handle kb :middle)
   (gripper handle kb :open)
   (move handle kb :left-pregrasp)
+  (move handle kb :left-grasp)
   (gripper handle kb :close)
+  (move handle kb :left-postgrasp)
   (move handle kb :middle)
   (move handle kb :right-pregrasp)
-  (gripper handle kb :open))
+  (move handle kb :right-grasp)
+  (gripper handle kb :open)
+)
 
 (defun main ()
   (with-ros-node ("nmmi_executive" :spin t)

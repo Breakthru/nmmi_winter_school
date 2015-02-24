@@ -32,14 +32,20 @@
   (values
    (advertise "/arm_controller/command" "geometry_msgs/TransformStamped")
    (advertise "/arm_controller/stiff_command" "iai_qb_cube_msgs/CubeStiffArray")
-   (advertise "/gripper_interpolator/command" "iai_qb_cube_msgs/CubeCmdArray")))
+   (advertise "/iai_qb_cube_driver/command" "iai_qb_cube_msgs/CubeCmdArray")
+   (advertise "/arm_interpolator/command" "iai_qb_cube_msgs/CubeCmdArray")))
 
 (defun command-move (handle kb target)
   (format t "Moving to ~a~%" target)
-  (publish (getf handle :arm-control) (to-msg (getf-rec kb :targets target)))
-  (publish (getf handle :stiff-control) 
-           (to-stiffness-msg (or (getf-rec kb :stiffness-presets target)
-                                 (getf-rec kb :stiffness-presets :default)))))
+  (let ((goal (getf-rec kb :targets target)))
+    (etypecase goal
+      (cl-tf2::stamped-transform
+       (progn
+         (publish (getf handle :arm-control) (to-msg (getf-rec kb :targets target)))
+         (publish (getf handle :stiff-control) 
+                  (to-stiffness-msg (or (getf-rec kb :stiffness-presets target)
+                                        (getf-rec kb :stiffness-presets :default))))))
+      (list (publish (getf handle :arm-interpolator) (to-joint-cmd-msg goal))))))
 
 (defun command-gripper (handle kb target)
   (format t "Commanding gripper to ~a~%" target)

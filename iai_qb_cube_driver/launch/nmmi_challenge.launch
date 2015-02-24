@@ -15,5 +15,4 @@
     <arg name="config-file" value="$(find iai_qb_cube_driver)/config/arm-interpolator.yaml"/>
     <arg name="node-name" value="arm_interpolator"/>
   </include>
-
 </launch>

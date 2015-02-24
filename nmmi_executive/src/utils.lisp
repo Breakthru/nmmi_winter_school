@@ -33,3 +33,6 @@
     (if (= 1 (length indicators))
         (getf place (first indicators))
         (apply #'getf-rec (getf place (first indicators)) (rest indicators)))))
+
+(defun getf-multiple (place &rest keys)
+  (mapcar (alexandria:curry #'getf place) keys))

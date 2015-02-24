@@ -81,3 +81,8 @@
            (loop for n in (coerce name 'list)
                  for p in (coerce position 'list)
                  collect `(,(intern (string-upcase n) :keyword) ,p)))))
+
+(defmethod from-msg ((msg iai_qb_cube_msgs-msg:cubedataarray))
+  (with-fields (contact_scalar contact_scalar_gradient) msg
+    `(:contact-scalar ,contact_scalar
+      :contact-scalar-gradient ,contact_scalar_gradient)))

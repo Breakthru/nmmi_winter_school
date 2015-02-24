@@ -33,6 +33,10 @@ result_map = {'arm_1_joint':0, 'arm_2_joint':0, 'arm_3_joint':0}
 cmd_fresh = False
 pos_fresh = False
 
+num_measurements = 10
+last_measurements = [0.0] * num_measurements
+meas_i = 0
+
 def cb_cube_commands(msg):
     #print msg
     for cmd in msg.commands:
@@ -52,7 +56,7 @@ def cb_cube_states(msg):
 
 def publish_data(publisher):
     
-    global pos_fresh, cmd_fresh
+    global pos_fresh, cmd_fresh, meas_i, last_measurements, num_measurements
     
     data_points = []
     contact_scalar = 0
@@ -71,9 +75,22 @@ def publish_data(publisher):
     cmd_fresh = False
     pos_fresh = False
     
+    last_measurements[meas_i] = contact_scalar
+    meas_i += 1
+    if meas_i >= num_measurements:
+        meas_i = 0
+    
+    import scipy
+    import numpy
+    avg = scipy.average(last_measurements)
+    gradients = abs(numpy.gradient(last_measurements))
+    gradient = gradients.dot(gradients)
+    
+    
     msg = CubeDataArray()
     msg.data = data_points
-    msg.contact_scalar = contact_scalar
+    msg.contact_scalar = avg
+    msg.contact_scalar_gradient = gradient
     
     publisher.publish(msg)
 
@@ -82,7 +99,8 @@ def main():
     rospy.init_node("arm_pos_error")
     rospy.loginfo("Coming up")
     
-    sub_cmd = rospy.Subscriber("/iai_qb_cube_driver/command", CubeCmdArray, cb_cube_commands, queue_size=1)
+    cmd_topic_name = "/arm_interpolator/command"  #was "/iai_qb_cube_driver/command
+    sub_cmd = rospy.Subscriber(cmd_topic_name, CubeCmdArray, cb_cube_commands, queue_size=1)
     
     sub_state = rospy.Subscriber("/iai_qb_cube_driver/cube_state", CubeStateArray, cb_cube_states, queue_size=1)
     

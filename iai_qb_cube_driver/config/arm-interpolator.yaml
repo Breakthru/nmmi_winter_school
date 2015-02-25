@@ -3,11 +3,6 @@ arm_interpolator:
     - arm_1_joint
     - arm_2_joint
     - arm_3_joint
-<<<<<<< HEAD
-  p_gain: 1.0
-  clamp: 0.05
-=======
   p_gain: 1.8
   clamp: 0.25
   i_gain: 0.01
->>>>>>> 665dcdea1510132a5c5c8f077835d28747c51b4f

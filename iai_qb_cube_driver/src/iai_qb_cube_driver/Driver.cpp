@@ -297,6 +297,10 @@ void Driver::readMeasurement()
       short int measurements[3];
       if (commGetMeasurements(&cube_comm_, cube_id, measurements) == -1){
           comm_error_counter_ += 1;
+          // UGLY HACK: add a tiny random value to get out of stuck position
+          // no data from the serial port
+          measurement_tmp_[i] = measurement_buffer_[i];
+          measurement_tmp_[i].joint_position_ += 0.005 - 0.005*rand()/RAND_MAX;
           if (comm_error_counter_ > 1000) {
             ROS_ERROR("1000 errors during reading of cube measurement");
             comm_error_counter_ = 0;
